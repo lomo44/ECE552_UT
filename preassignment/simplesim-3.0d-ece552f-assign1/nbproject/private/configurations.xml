@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="97">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="config">
+      </df>
+      <df name="libexo">
+        <in>exo-test.c</in>
+        <in>exolex.c</in>
+        <in>libexo.c</in>
+        <in>libexo.h</in>
+      </df>
+      <df name="target-alpha">
+        <in>alpha.c</in>
+        <in>alpha.def</in>
+        <in>alpha.h</in>
+        <in>config.h</in>
+        <in>ecoff.h</in>
+        <in>loader.c</in>
+        <in>symbol.c</in>
+        <in>syscall.c</in>
+      </df>
+      <df name="target-pisa">
+        <in>config.h</in>
+        <in>configbig.h</in>
+        <in>configlit.h</in>
+        <in>ecoff.h</in>
+        <in>loader.c</in>
+        <in>pisa.c</in>
+        <in>pisa.def</in>
+        <in>pisa.h</in>
+        <in>symbol.c</in>
+        <in>syscall.c</in>
+      </df>
+      <df name="tests">
+        <df name="bin.big">
+        </df>
+        <df name="bin.little">
+        </df>
+        <df name="eio.big">
+        </df>
+        <df name="eio.little">
+        </df>
+        <df name="inputs">
+        </df>
+        <df name="outputs">
+        </df>
+        <df name="results">
+        </df>
+        <df name="src">
+          <in>anagram.c</in>
+          <in>test-as.s</in>
+          <in>test-fmath.c</in>
+          <in>test-llong.c</in>
+          <in>test-lswlr.c</in>
+          <in>test-math.c</in>
+          <in>test-printf.c</in>
+        </df>
+      </df>
+      <df name="tests-alpha">
+        <df name="bin">
+        </df>
+        <df name="eio">
+        </df>
+        <df name="inputs">
+        </df>
+        <df name="outputs">
+        </df>
+        <df name="results">
+        </df>
+        <df name="src">
+          <in>anagram.c</in>
+          <in>test-dirent.c</in>
+          <in>test-fmath.c</in>
+          <in>test-llong.c</in>
+          <in>test-lswlr.c</in>
+          <in>test-math.c</in>
+          <in>test-printf.c</in>
+        </df>
+      </df>
+      <df name="tests-pisa">
+        <df name="bin.big">
+        </df>
+        <df name="bin.little">
+        </df>
+        <df name="eio.big">
+        </df>
+        <df name="eio.little">
+        </df>
+        <df name="inputs">
+        </df>
+        <df name="outputs">
+        </df>
+        <df name="results">
+        </df>
+        <df name="src">
+          <in>anagram.c</in>
+          <in>test-as.s</in>
+          <in>test-fmath.c</in>
+          <in>test-llong.c</in>
+          <in>test-lswlr.c</in>
+          <in>test-math.c</in>
+          <in>test-printf.c</in>
+        </df>
+      </df>
+      <in>1stmt.i</in>
+      <in>1stmt.s</in>
+      <in>bitmap.h</in>
+      <in>config.h</in>
+      <in>decode.def</in>
+      <in>dlite.c</in>
+      <in>dlite.h</in>
+      <in>eio.c</in>
+      <in>eio.h</in>
+      <in>endian.c</in>
+      <in>endian.h</in>
+      <in>eval.c</in>
+      <in>eval.h</in>
+      <in>eventq.c</in>
+      <in>eventq.h</in>
+      <in>host.h</in>
+      <in>loader.c</in>
+      <in>loader.h</in>
+      <in>machine.c</in>
+      <in>machine.def</in>
+      <in>machine.h</in>
+      <in>main.c</in>
+      <in>memory.c</in>
+      <in>memory.h</in>
+      <in>misc.c</in>
+      <in>misc.h</in>
+      <in>options.c</in>
+      <in>options.h</in>
+      <in>ptrace.c</in>
+      <in>ptrace.h</in>
+      <in>range.c</in>
+      <in>range.h</in>
+      <in>regs.c</in>
+      <in>regs.h</in>
+      <in>resource.c</in>
+      <in>resource.h</in>
+      <in>sim-eio.c</in>
+      <in>sim-fast.c</in>
+      <in>sim-profile.c</in>
+      <in>sim-safe.c</in>
+      <in>sim.h</in>
+      <in>stats.c</in>
+      <in>stats.h</in>
+      <in>symbol.c</in>
+      <in>symbol.h</in>
+      <in>syscall.c</in>
+      <in>syscall.h</in>
+      <in>sysprobe.c</in>
+      <in>testexec.c</in>
+      <in>version.h</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>.</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>
