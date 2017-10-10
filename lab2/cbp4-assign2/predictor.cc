@@ -55,7 +55,7 @@ int GetPHTIndex(UINT32 PC){
 }
 
 int GetBHTIndex(UINT32 PC){
-    return (PC & 0b1111111000) >> 3;
+    return (PC & 0b111111111000) >> 3;
 }
 
 int GetHistoryIndex(BYTE history){
@@ -64,7 +64,9 @@ int GetHistoryIndex(BYTE history){
 
 void InitPredictor_2level() {
     memset(gBHT,0, BYTE_SIZE * BHT_ENTRY_COUNT);
-    memset(gPHT,WEAK_NOT_TAKEN, BYTE_SIZE * PHT_ENTRY_COUNT);
+    int i = 0;
+    for(i =0 ; i < 64; i++)
+        memset(gPHT[i],WEAK_NOT_TAKEN, 8);
 }
 
 bool GetPrediction_2level(UINT32 PC) {
