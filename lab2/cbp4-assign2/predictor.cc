@@ -100,7 +100,7 @@ void UpdatePredictor_2level(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
     }
     gPHT[GetHistoryIndex(gBHT[bht_index])][pht_index] = modified_result;
     gBHT[bht_index] <<= 1;
-    gBHT[bht_index] |= resolveDir;
+    gBHT[bht_index] |= (resolveDir == predDir) ? TAKEN : NOT_TAKEN;
 }
 
 /////////////////////////////////////////////////////////////
