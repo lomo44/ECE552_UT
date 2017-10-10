@@ -83,39 +83,14 @@ void UpdatePredictor_2level(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
     int pht_index = GetPHTIndex(PC);
     int current_history = gPHT[GetHistoryIndex(gBHT[bht_index])][pht_index];
     int modified_result = current_history;
-    switch(current_history){
-        case WEAK_NOT_TAKEN:{
-            if(resolveDir!=predDir) {
-                modified_result = STRONG_NOT_TAKEN;
-            }
-            else{
-                modified_result = WEAK_TAKEN;
-            }
-            break;
-        }
-        case STRONG_NOT_TAKEN:{
-            if(resolveDir == predDir){
-                modified_result = WEAK_NOT_TAKEN;
-            }
-            break;
-        }
-        case WEAK_TAKEN:{
-            if(resolveDir == predDir){
-                modified_result = STRONG_TAKEN;
-            }
-            else{
-                modified_result = WEAK_NOT_TAKEN;
-            }
-            break;
-        }
-        case STRONG_TAKEN:{
-            if(resolveDir != predDir){
-                modified_result = WEAK_NOT_TAKEN;
-            }
-            break;
-        }
-        default:
-            break;
+
+    if (resolveDir == TAKEN) {
+        if (modified_result != STRONG_TAKEN)
+            modified_result ++;
+    }
+    if (resolveDir == NOT_TAKEN) {
+        if (modified_result != STRONG_NOT_TAKEN)
+             modified_result --;
     }
     gPHT[GetHistoryIndex(gBHT[bht_index])][pht_index] = modified_result;
     gBHT[bht_index] <<= 1;
