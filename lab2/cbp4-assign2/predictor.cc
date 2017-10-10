@@ -13,16 +13,33 @@
 #define STRONG_NOT_TAKEN 0
 
 
+int two_bit_cont [4096];
+
 void InitPredictor_2bitsat() {
 
+    for (int i =0; i <4096; i++){
+        two_bit_cont[i] = WEAK_NOT_TAKEN;
+    }
 }
 
 bool GetPrediction_2bitsat(UINT32 PC) {
-
-    return TAKEN;
+    int index =  ( PC % 4096 << 2) >> 2;
+    if (two_bit_cont[index] == STRONG_TAKEN || two_bit_cont[index] == WEAK_TAKEN)
+        return TAKEN;
+    else
+        return NOT_TAKEN;
 }
 
 void UpdatePredictor_2bitsat(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
+    int index = ( PC % 4096 << 2) >> 2;
+    if (resolveDir == TAKEN) {
+        if (two_bit_cont[index] != STRONG_TAKEN)
+            two_bit_cont[index] ++;
+    }
+    if (resolveDir == NOT_TAKEN) {
+        if (two_bit_cont[index] != STRONG_NOT_TAKEN)
+            two_bit_cont[index] --;
+    }
 
 }
 
