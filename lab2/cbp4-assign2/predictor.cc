@@ -4,6 +4,8 @@
 // 2bitsat
 /////////////////////////////////////////////////////////////
 #define BYTE unsigned char
+#define HWORD short
+#define WORD int
 #define BYTE_SIZE sizeof(BYTE)
 #define BHT_ENTRY_COUNT 512
 #define PHT_ENTRY_COUNT 8
@@ -97,20 +99,69 @@ void UpdatePredictor_2level(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
     gBHT[bht_index] |= (resolveDir == TAKEN) ? TAKEN : NOT_TAKEN;
 }
 
+
+BYTE gShare;
+BYTE gGlobalSelect[256];
+
+
+void InitPredictor_Global(){
+    gShare = 0;
+    memset(gGlobalSelect, WEAK_NOT_TAKEN,256);
+}
+
+bool GetPrediction_Global(UINT32 PC){
+    int index = ((PC >> 4) & 255) ^ gShare;
+    if(gGlobalSelect[index] >= WEAK_TAKEN)
+        return TAKEN;
+    else{
+        return NOT_TAKEN;
+    }
+}
+void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
+    int index = ((PC >> 4) & 255) ^ gShare;
+    int modified_result = gGlobalSelect[index];
+    if (resolveDir == TAKEN) {
+        if (modified_result != STRONG_TAKEN)
+            modified_result ++;
+    }
+    if (resolveDir == NOT_TAKEN) {
+        if (modified_result != STRONG_NOT_TAKEN)
+            modified_result --;
+    }
+    gGlobalSelect[index] = modified_result;
+    gShare <<= 1;
+    gShare |= resolveDir == TAKEN? 1 : 0;
+}
+
 /////////////////////////////////////////////////////////////
 // openend
 /////////////////////////////////////////////////////////////
 
 void InitPredictor_openend() {
-
+    InitPredictor_2bitsat();
+    InitPredictor_2level();
+    InitPredictor_Global();
 }
 
 bool GetPrediction_openend(UINT32 PC) {
+    int taken_count = 0;
+    if(GetPrediction_2bitsat(PC))
+        taken_count++;
+    if(GetPrediction_2level(PC))
+        taken_count++;
+    if(GetPrediction_Global(PC))
+        taken_count++;
+    if(taken_count>=2)
+        return TAKEN;
+    else
+        return NOT_TAKEN;
 
-    return TAKEN;
 }
 
 void UpdatePredictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-
+    UpdatePredictor_2bitsat(PC,resolveDir,predDir,branchTarget);
+    UpdatePredictor_2level(PC,resolveDir,predDir,branchTarget);
+    UpdatePredictor_Global(PC,resolveDir,predDir,branchTarget);
 }
+
 
