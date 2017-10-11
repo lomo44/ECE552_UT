@@ -99,18 +99,23 @@ void UpdatePredictor_2level(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
     gBHT[bht_index] |= (resolveDir == TAKEN) ? TAKEN : NOT_TAKEN;
 }
 
+#define GSHARE_SIZE 10
+int gShare;
+#define GSELECT_SIZE (1<<GSHARE_SIZE)
 
-BYTE gShare;
-BYTE gGlobalSelect[256];
+BYTE gGlobalSelect[GSELECT_SIZE];
 
+int GetPredictionIndex_Global(UINT32 PC){
+    return (((PC >> 4) & (GSELECT_SIZE-1)) ^ (gShare & (GSELECT_SIZE-1)));
+}
 
 void InitPredictor_Global(){
     gShare = 0;
-    memset(gGlobalSelect, WEAK_NOT_TAKEN,256);
+    memset(gGlobalSelect, WEAK_NOT_TAKEN,GSELECT_SIZE);
 }
 
 bool GetPrediction_Global(UINT32 PC){
-    int index = ((PC >> 4) & 255) ^ gShare;
+    int index = GetPredictionIndex_Global(PC);
     if(gGlobalSelect[index] >= WEAK_TAKEN)
         return TAKEN;
     else{
@@ -118,7 +123,7 @@ bool GetPrediction_Global(UINT32 PC){
     }
 }
 void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    int index = ((PC >> 4) & 255) ^ gShare;
+    int index = GetPredictionIndex_Global(PC);
     int modified_result = gGlobalSelect[index];
     if (resolveDir == TAKEN) {
         if (modified_result != STRONG_TAKEN)
@@ -137,7 +142,7 @@ void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
 
 int take[4096];
 int not_take[4096];
-void InitPredictor_RP() {\
+void InitPredictor_RP() {
     for (int i = 0; i<4096;i++){
         take[i]=0;
         not_take[i]=0;
@@ -167,33 +172,71 @@ void UpdatePredictor_RP(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchT
 // openend
 /////////////////////////////////////////////////////////////
 
+#define PERCEPTRON_ROW 512
+#define PERCEPTRON_COL 31
+#define P_THRESHOLD 73
 
+char percep_table[PERCEPTRON_ROW][PERCEPTRON_COL];
+bool p_hist[PERCEPTRON_COL];
+int output = 0;
+
+int GetPrediction_PerC(UINT32 PC) {
+    int row_index = PC % PERCEPTRON_ROW;
+    int j, weight_sum = 0;
+    for(j = 1; j < PERCEPTRON_COL; j++){
+        int masked_weight = percep_table[row_index][j];     //8 bits for all weights
+        if(p_hist[j]){
+            //taken in global history
+            weight_sum += masked_weight;
+        }
+        else{
+            weight_sum += -1*masked_weight;
+        }
+    }
+    int masked_bias = percep_table[row_index][0];
+    output = masked_bias + weight_sum;
+    return (output >= 0) ? TAKEN : NOT_TAKEN;
+}
+void UpdatePredictor_PerC(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
+    int i = PC % PERCEPTRON_ROW;
+    if(resolveDir != predDir || abs(output) <= P_THRESHOLD){
+        if(resolveDir == TAKEN){
+            percep_table[i][0] += 1;
+        }
+        else{
+            percep_table[i][0] += -1;
+        }
+        int j = 1;
+        for(; j < PERCEPTRON_COL; j++){
+            if(resolveDir == p_hist[j]){
+                percep_table[i][j] += 1;
+            }
+            else{
+                percep_table[i][j] += -1;
+            }
+        }
+    }
+    int k;
+
+    for (k = 1; k < PERCEPTRON_COL-1; k++){
+        p_hist[k] = p_hist[k+1];
+    }
+    p_hist[k] = (resolveDir == TAKEN);
+}
+void InitPredictor_PerC(){
+
+}
 void InitPredictor_openend() {
-    //InitPredictor_2bitsat();
-    InitPredictor_RP();
-    InitPredictor_2level();
-    InitPredictor_Global();
+    InitPredictor_PerC();
 }
 
 bool GetPrediction_openend(UINT32 PC) {
-    int taken_count = 0;
-    if(GetPrediction_RP(PC))
-        taken_count++;
-    if(GetPrediction_2level(PC))
-        taken_count++;
-    if(GetPrediction_Global(PC))
-        taken_count++;
-    if(taken_count>=2)
-        return TAKEN;
-    else
-        return NOT_TAKEN;
+    return GetPrediction_PerC(PC);
 
 }
 
 void UpdatePredictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    UpdatePredictor_RP(PC,resolveDir,predDir,branchTarget);
-    UpdatePredictor_2level(PC,resolveDir,predDir,branchTarget);
-    UpdatePredictor_Global(PC,resolveDir,predDir,branchTarget);
+    UpdatePredictor_PerC(PC,resolveDir,predDir,branchTarget);
 }
 
 
