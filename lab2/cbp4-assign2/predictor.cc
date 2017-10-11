@@ -137,6 +137,33 @@ void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
 // openend
 /////////////////////////////////////////////////////////////
 
+int take[4096];
+int not_take[4096];
+void Init_RP_Predictor_openend() {\
+    for (int i = 0; i<4096;i++){
+        take[i]=0;
+        not_take[i]=0;
+    }
+
+}
+
+bool Get_RP_Prediction_openend(UINT32 PC) {
+    int index = (PC>>2) &0b111111111111;
+    if (take[index] >= not_take[index])
+        return TAKEN;
+    else
+        return NOT_TAKEN;
+}
+
+void Update_RP_Predictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
+    int index = (PC>>2) &0b111111111111;
+    if (resolveDir == TAKEN) {
+        take[index]++;
+    } else {
+        not_take[index] ++;
+    }
+}
+
 void InitPredictor_openend() {
     InitPredictor_2bitsat();
     InitPredictor_2level();
