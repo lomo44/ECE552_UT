@@ -137,7 +137,7 @@ void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
 
 int take[4096];
 int not_take[4096];
-void Init_RP_Predictor_openend() {\
+void InitPredictor_RP() {\
     for (int i = 0; i<4096;i++){
         take[i]=0;
         not_take[i]=0;
@@ -145,7 +145,7 @@ void Init_RP_Predictor_openend() {\
 
 }
 
-bool Get_RP_Prediction_openend(UINT32 PC) {
+bool GetPrediction_RP(UINT32 PC) {
     int index = (PC>>2) &0b111111111111;
     if (take[index] >= not_take[index])
         return TAKEN;
@@ -153,7 +153,7 @@ bool Get_RP_Prediction_openend(UINT32 PC) {
         return NOT_TAKEN;
 }
 
-void Update_RP_Predictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
+void UpdatePredictor_RP(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
     int index = (PC>>2) &0b111111111111;
     if (resolveDir == TAKEN) {
         take[index]++;
@@ -167,42 +167,17 @@ void Update_RP_Predictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT3
 // openend
 /////////////////////////////////////////////////////////////
 
-int take[4096];
-int not_take[4096];
-void Init_RP_Predictor_openend() {\
-    for (int i = 0; i<4096;i++){
-        take[i]=0;
-        not_take[i]=0;
-    }
-
-}
-
-bool Get_RP_Prediction_openend(UINT32 PC) {
-    int index = (PC>>2) &0b111111111111;
-    if (take[index] >= not_take[index])
-        return TAKEN;
-    else
-        return NOT_TAKEN;
-}
-
-void Update_RP_Predictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    int index = (PC>>2) &0b111111111111;
-    if (resolveDir == TAKEN) {
-        take[index]++;
-    } else {
-        not_take[index] ++;
-    }
-}
 
 void InitPredictor_openend() {
-    InitPredictor_2bitsat();
+    //InitPredictor_2bitsat();
+    InitPredictor_RP();
     InitPredictor_2level();
     InitPredictor_Global();
 }
 
 bool GetPrediction_openend(UINT32 PC) {
     int taken_count = 0;
-    if(GetPrediction_2bitsat(PC))
+    if(GetPrediction_RP(PC))
         taken_count++;
     if(GetPrediction_2level(PC))
         taken_count++;
@@ -216,7 +191,7 @@ bool GetPrediction_openend(UINT32 PC) {
 }
 
 void UpdatePredictor_openend(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    UpdatePredictor_2bitsat(PC,resolveDir,predDir,branchTarget);
+    UpdatePredictor_RP(PC,resolveDir,predDir,branchTarget);
     UpdatePredictor_2level(PC,resolveDir,predDir,branchTarget);
     UpdatePredictor_Global(PC,resolveDir,predDir,branchTarget);
 }
