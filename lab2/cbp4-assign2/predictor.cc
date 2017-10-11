@@ -135,30 +135,31 @@ void UpdatePredictor_Global(UINT32 PC, bool resolveDir, bool predDir, UINT32 bra
 
 
 
-int take[4096];
-int not_take[4096];
+BYTE take[256];
 void InitPredictor_RP() {\
-    for (int i = 0; i<4096;i++){
-        take[i]=0;
-        not_take[i]=0;
+    for (int i = 0; i<256;i++){
+        take[i]=128;
+        //not_take[i]=0;
     }
 
 }
 
 bool GetPrediction_RP(UINT32 PC) {
-    int index = (PC>>2) &0b111111111111;
-    if (take[index] >= not_take[index])
+    int index = (PC>>4) % 255;
+    if (take[index] >= 128)
         return TAKEN;
     else
         return NOT_TAKEN;
 }
 
 void UpdatePredictor_RP(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    int index = (PC>>2) &0b111111111111;
+    int index = (PC>>4) % 255;
     if (resolveDir == TAKEN) {
-        take[index]++;
+        if (take[index] < 256)
+            take[index]++;
     } else {
-        not_take[index] ++;
+        if (take[index] > 0)
+            take[index] --;
     }
 }
 
