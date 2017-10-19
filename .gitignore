@@ -1,3 +1,14 @@
 # C++ File
 
 *.o
+
+# cmake 
+
+cmake-build-debug/
+
+# clion stuff
+
+.idea/
+
+# dump file
+*.dump
