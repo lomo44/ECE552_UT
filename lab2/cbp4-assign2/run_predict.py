@@ -32,5 +32,5 @@ for simulator in list_in:
 
 		print_result += "\n";
 		file_out.write(print_result); 
-
+file_out.write("Average MPKI,=AVERAGE(B2:B9),=AVERAGE(C2:C9),=AVERAGE(D2:D9)\n"); 
 os.system("rm predict.txt");
