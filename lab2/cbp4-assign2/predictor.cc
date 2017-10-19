@@ -24,8 +24,12 @@ void InitPredictor_2bitsat() {
     }
 }
 
+int GetIndex_2bitsat(UINT32 PC){
+    return PC % 4096;
+}
+
 bool GetPrediction_2bitsat(UINT32 PC) {
-    int index =  ( PC % 4096 << 2) >> 2;
+    int index =  GetIndex_2bitsat(PC);
     if (two_bit_cont[index] == STRONG_TAKEN || two_bit_cont[index] == WEAK_TAKEN)
         return TAKEN;
     else
@@ -33,7 +37,7 @@ bool GetPrediction_2bitsat(UINT32 PC) {
 }
 
 void UpdatePredictor_2bitsat(UINT32 PC, bool resolveDir, bool predDir, UINT32 branchTarget) {
-    int index = ( PC % 4096 << 2) >> 2;
+    int index = GetIndex_2bitsat(PC);
     if (resolveDir == TAKEN) {
         if (two_bit_cont[index] != STRONG_TAKEN)
             two_bit_cont[index] ++;

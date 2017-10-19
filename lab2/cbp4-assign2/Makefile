@@ -8,8 +8,8 @@ objects = tracer.o predictor.o main.o
 predictor : $(objects)
 	$(CXX) -o $@ $(objects)
 
-mb:
-	$(CXX) $@.c -o $@
+mb: mb.c
+	$(CXX) -g -o0 $@.c -o $@
 	/cad2/ece552f/pin/run_branchtrace $(CURDIR)/mb
 
 clean_mb:
@@ -17,5 +17,3 @@ clean_mb:
 
 clean :
 	rm -f predictor $(objects)
-
-

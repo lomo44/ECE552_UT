@@ -3,13 +3,14 @@
 //
 
 #include <stdlib.h>
-
+#include <stdio.h>
 int main(){
-    int a;
-    for (int i = 0 ; i < 100000; i++){
-        if( a %4 == 0){
-            a = 10;
+    register int i;
+    register int j = 0;
+    for (i = 0 ; i < 10000; i++){
+        if( j % 2 != 0){
+            j+=2;
         }
-        a=15;
+        j++;
     }
 }
