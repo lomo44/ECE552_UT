@@ -102,6 +102,7 @@ static int fetch_index = 0;
 
 void            tmPushInsQueue(instruction_t* in_pInstuction);
 instruction_t*  tmPopInsQueue();
+instruction_t*  tmTopQueue();
 
 /* FUNCTIONAL UNITS */
 
@@ -206,7 +207,53 @@ void fetch(instruction_trace_t* trace) {
  */
 void fetch_To_dispatch(instruction_trace_t* trace, int current_cycle) {
 
-  fetch(trace);
+    fetch(trace);
+    instruction_t* inst_disp;
+    int dispatched = 0;
+    for (int i = 0; i < 10; i++){
+        inst_disp = instr_queue[i];
+        if (IS_UNCOND_CTRL(inst_disp->op)||IS_COND_CTRL(inst_disp->op)) {
+            inst_disp->tom_dispatch_cycle = current_cycle;
+            break;
+        }
+        if (USES_INT_FU(inst_disp->op)) {
+            for (int j = 0; j < 2; ++j) {
+                if (reservFP[j] == NULL) {
+                    reservFP[j] = inst_disp;
+                    dispatched = 1;
+                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
+                    inst_disp->Q[0] = map_table[inst_disp->_in[0]];
+                    inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
+                    inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    break;
+                }
+            }
+            if (dispatched)
+                break;
+        }
+        if (USES_FP_FU(inst_disp->op)) {
+            for (int j = 0; j < 4; ++j) {
+                if (reservINT[j] == NULL) {
+                    reservINT[j] = inst_disp;
+                    dispatched = 1;
+                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
+                    inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
+                    inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
+                    inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    break;
+                }
+            }
+            if (dispatched)
+                break;
+        }
+    }
+
+
+
 
   /* ECE552: YOUR CODE GOES HERE */
 }
