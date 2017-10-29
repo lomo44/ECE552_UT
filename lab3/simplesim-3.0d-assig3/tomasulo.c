@@ -99,6 +99,10 @@ static instruction_t* map_table[MD_TOTAL_REGS];
 //the index of the last instruction fetched
 static int fetch_index = 0;
 
+
+void            tmPushInsQueue(instruction_t* in_pInstuction);
+instruction_t*  tmPopInsQueue();
+
 /* FUNCTIONAL UNITS */
 
 
