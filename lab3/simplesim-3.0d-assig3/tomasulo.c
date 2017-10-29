@@ -270,20 +270,34 @@ void dispatch_To_issue(int current_cycle) {
  * 	None
  */
 void fetch(instruction_trace_t *trace) {
+    /* ECE552: YOUR CODE GOES HERE */
+    instruction_trace_t* curretn_trace = trace;
+    instruction_t* current_instruction = NULL;
+    // Getting into the correct trace page and index
     int page_index = fetch_index / INSTR_TRACE_SIZE;
     int instruction_index = fetch_index % INSTR_TRACE_SIZE;
-    int passed_index = 0;
-    instruction_trace_t* curretn_trace = trace;
-    while(passed_index < page_index){
-        curretn_trace = curretn_trace->next;
-        passed_index+=1;
+    int pass_index = 0;
+    while(pass_index!=page_index){
+        trace = trace->next;
+        pass_index++;
     }
-    curretn_trace->table[instruction_index].tom_execute_cycle = -1;
-    curretn_trace->table[instruction_index].tom_cdb_cycle = -1;
-    curretn_trace->table[instruction_index].tom_dispatch_cycle = -1;
-    curretn_trace->table[instruction_index].tom_issue_cycle = -1;
-    tmPushInsQueue(&curretn_trace->table[instruction_index]);
-    /* ECE552: YOUR CODE GOES HERE */
+    // getting the correct trace
+    current_instruction = &trace->table[page_index];
+    // if the trace is a trap, move to the next trace
+    while(IS_TRAP(current_instruction)){
+        page_index++;
+        if(page_index >= INSTR_TRACE_SIZE){
+            page_index = page_index%INSTR_TRACE_SIZE;
+            trace = trace->next;
+        }
+        current_instruction = &trace->table[page_index];
+    }
+    // Initialize its cycle count
+    current_instruction.tom_execute_cycle = -1;
+    current_instruction.tom_cdb_cycle = -1;
+    current_instruction.tom_dispatch_cycle = -1;
+    current_instruction.tom_issue_cycle = -1;
+    tmPushInsQueue(current_instruction);
 }
 
 /* 
