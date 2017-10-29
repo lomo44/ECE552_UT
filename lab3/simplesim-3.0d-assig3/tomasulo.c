@@ -190,7 +190,7 @@ void execute_To_CDB(int current_cycle) {
     instruction_t* ins_toCDB = NULL;
     for(i = 0; i < FU_FP_SIZE; i++){
         instruction_t* current_instruction = fuFP[i];
-        if(WRITES_CDB(current_instruction.op) && current_instruction - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
+        if(WRITES_CDB(current_instruction.op) && current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
             if(ins_toCDB == NULL){
                 ins_toCDB = current_instruction;
             }
@@ -203,7 +203,7 @@ void execute_To_CDB(int current_cycle) {
     }
     for(i = 0; i < FU_INT_SIZE; i++){
         instruction_t* current_instruction = fuINT[i];
-        if(WRITES_CDB(current_instruction.op) &&current_instruction - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
+        if(WRITES_CDB(current_instruction.op) &&current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
             if(ins_toCDB == NULL){
                 ins_toCDB = current_instruction;
             }
