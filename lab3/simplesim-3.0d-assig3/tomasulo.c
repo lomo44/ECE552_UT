@@ -55,7 +55,7 @@
 #define IS_STORE(op) (MD_OP_FLAGS(op) & F_STORE)
 
 //trap instruction
-#define IS_TRAP(op) (MD_OP_FLAGS(op) & F_TRAP) 
+#define IS_TRAP(op) (MD_OP_FLAGS(op) & F_TRAP)
 
 #define USES_INT_FU(op) (IS_ICOMP(op) || IS_LOAD(op) || IS_STORE(op))
 #define USES_FP_FU(op) (IS_FCOMP(op))
@@ -65,43 +65,62 @@
 /* FOR DEBUGGING */
 
 //prints info about an instruction
-#define PRINT_INST(out,instr,str,cycle)	\
-  myfprintf(out, "%d: %s", cycle, str);		\
+#define PRINT_INST(out, instr, str, cycle)    \
+  myfprintf(out, "%d: %s", cycle, str);        \
   md_print_insn(instr->inst, instr->pc, out); \
   myfprintf(stdout, "(%d)\n",instr->index);
 
-#define PRINT_REG(out,reg,str,instr) \
-  myfprintf(out, "reg#%d %s ", reg, str);	\
+#define PRINT_REG(out, reg, str, instr) \
+  myfprintf(out, "reg#%d %s ", reg, str);    \
   md_print_insn(instr->inst, instr->pc, out); \
   myfprintf(stdout, "(%d)\n",instr->index);
 
 /* VARIABLES */
 
 //instruction queue for tomasulo
-static instruction_t* instr_queue[INSTR_QUEUE_SIZE];
+static instruction_t *instr_queue[INSTR_QUEUE_SIZE];
 //number of instructions in the instruction queue
 static int instr_queue_size = 0;
 
 //reservation stations (each reservation station entry contains a pointer to an instruction)
-static instruction_t* reservINT[RESERV_INT_SIZE];
-static instruction_t* reservFP[RESERV_FP_SIZE];
+static instruction_t *reservINT[RESERV_INT_SIZE];
+static instruction_t *reservFP[RESERV_FP_SIZE];
 
 //functional units
-static instruction_t* fuINT[FU_INT_SIZE];
-static instruction_t* fuFP[FU_FP_SIZE];
+static instruction_t *fuINT[FU_INT_SIZE];
+static instruction_t *fuFP[FU_FP_SIZE];
 
 //common data bus
-static instruction_t* commonDataBus = NULL;
+static instruction_t *commonDataBus = NULL;
 
 //The map table keeps track of which instruction produces the value for each register
-static instruction_t* map_table[MD_TOTAL_REGS];
+static instruction_t *map_table[MD_TOTAL_REGS];
 
 //the index of the last instruction fetched
 static int fetch_index = 0;
 
 
-void            tmPushInsQueue(instruction_t* in_pInstuction);
-instruction_t*  tmPopInsQueue();
+void tmPushInsQueue(instruction_t *in_pInstuction) {
+    if (instr_queue_size < INSTR_QUEUE_SIZE) {
+        // Queue has emptry slots in it, shift down the queue
+        instr_queue[instr_queue_size] = in_pInstuction;
+        instr_queue_size++;
+    }
+}
+
+instruction_t* tmPopInsQueue(){
+    instruction_t* ret = instr_queue[0];
+    int i;
+    for (i = 0; i < INSTR_QUEUE_SIZE-1; i++) {
+        instr_queue[i] = instr_queue[i + 1];
+    }
+    instr_queue_size--;
+    return ret;
+}
+
+instruction_t* tmTopQueue(){
+    return instr_queue[0];
+}
 
 /* FUNCTIONAL UNITS */
 
@@ -120,9 +139,9 @@ instruction_t*  tmPopInsQueue();
  */
 static bool is_simulation_done(counter_t sim_insn) {
 
-  /* ECE552: YOUR CODE GOES HERE */
+    /* ECE552: YOUR CODE GOES HERE */
 
-  return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
+    return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
 }
 
 /* 
@@ -134,9 +153,26 @@ static bool is_simulation_done(counter_t sim_insn) {
  * 	None
  */
 void CDB_To_retire(int current_cycle) {
-
-  /* ECE552: YOUR CODE GOES HERE */
-
+    /* ECE552: YOUR CODE GOES HERE */
+    int i,j;
+    if(current_cycle - commonDataBus->tom_cdb_cycle >= 1){
+        for(i = 0; i < RESERV_FP_SIZE; i++){
+            for(j = 0 ; j < 3 ;j++){
+                if(reservFP[i]->Q[j]==commonDataBus){
+                    reservFP[i]->Q[j] = NULL;
+                }
+            }
+        }
+        for(i = 0; i < MD_TOTAL_REGS;i++){
+            if(map_table[i]==commonDataBus){
+                map_table[i] = NULL;
+            }
+        }
+    }
+    // Retiring older instruction
+    instruction_t* top = tmTopQueue();
+    while(top!=NULL && top->tom_cdb_cycle && commonDataBus!=top)
+        tmPopInsQueue();
 }
 
 
@@ -149,9 +185,52 @@ void CDB_To_retire(int current_cycle) {
  * 	None
  */
 void execute_To_CDB(int current_cycle) {
-
-  /* ECE552: YOUR CODE GOES HERE */
-
+    /* ECE552: YOUR CODE GOES HERE */
+    int i;
+    instruction_t* ins_toCDB = NULL;
+    for(i = 0; i < FU_FP_SIZE; i++){
+        instruction_t* current_instruction = fuFP[i];
+        if(WRITES_CDB(current_instruction.op) && current_instruction - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
+            if(ins_toCDB == NULL){
+                ins_toCDB = current_instruction;
+            }
+            else{
+                if(current_instruction->index < ins_toCDB){
+                    ins_toCDB = current_instruction;
+                }
+            }
+        }
+    }
+    for(i = 0; i < FU_INT_SIZE; i++){
+        instruction_t* current_instruction = fuINT[i];
+        if(WRITES_CDB(current_instruction.op) &&current_instruction - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
+            if(ins_toCDB == NULL){
+                ins_toCDB = current_instruction;
+            }
+            else{
+                if(current_instruction->index < ins_toCDB){
+                    ins_toCDB = current_instruction;
+                }
+            }
+        }
+    }
+    // Push the selected instruction to CDB
+    if(ins_toCDB!=NULL){
+        if(commonDataBus==NULL){
+            for(i = 0; i<FU_INT_SIZE;i++){
+                if(fuINT[i] == ins_toCDB){
+                    fuINT[i] == NULL;
+                }
+            }
+            for(i = 0; i<FU_FP_SIZE;i++){
+                if(fuFP[i] == ins_toCDB){
+                    fuFP[i] == NULL;
+                }
+            }
+            ins_toCDB->tom_cdb_cycle = current_cycle;
+            commonDataBus = ins_toCDB;
+        }
+    }
 }
 
 /* 
@@ -166,7 +245,7 @@ void execute_To_CDB(int current_cycle) {
  */
 void issue_To_execute(int current_cycle) {
 
-  /* ECE552: YOUR CODE GOES HERE */
+    /* ECE552: YOUR CODE GOES HERE */
 }
 
 /* 
@@ -179,7 +258,7 @@ void issue_To_execute(int current_cycle) {
  */
 void dispatch_To_issue(int current_cycle) {
 
-  /* ECE552: YOUR CODE GOES HERE */
+    /* ECE552: YOUR CODE GOES HERE */
 }
 
 /* 
@@ -190,9 +269,21 @@ void dispatch_To_issue(int current_cycle) {
  * Returns:
  * 	None
  */
-void fetch(instruction_trace_t* trace) {
-
-  /* ECE552: YOUR CODE GOES HERE */
+void fetch(instruction_trace_t *trace) {
+    int page_index = fetch_index / INSTR_TRACE_SIZE;
+    int instruction_index = fetch_index % INSTR_TRACE_SIZE;
+    int passed_index = 0;
+    instruction_trace_t* curretn_trace = trace;
+    while(passed_index < page_index){
+        curretn_trace = curretn_trace->next;
+        passed_index+=1;
+    }
+    curretn_trace->table[instruction_index].tom_execute_cycle = -1;
+    curretn_trace->table[instruction_index].tom_cdb_cycle = -1;
+    curretn_trace->table[instruction_index].tom_dispatch_cycle = -1;
+    curretn_trace->table[instruction_index].tom_issue_cycle = -1;
+    tmPushInsQueue(&curretn_trace->table[instruction_index]);
+    /* ECE552: YOUR CODE GOES HERE */
 }
 
 /* 
@@ -204,11 +295,11 @@ void fetch(instruction_trace_t* trace) {
  * Returns:
  * 	None
  */
-void fetch_To_dispatch(instruction_trace_t* trace, int current_cycle) {
+void fetch_To_dispatch(instruction_trace_t *trace, int current_cycle) {
 
-  fetch(trace);
+    fetch(trace);
 
-  /* ECE552: YOUR CODE GOES HERE */
+    /* ECE552: YOUR CODE GOES HERE */
 }
 
 /* 
@@ -221,48 +312,47 @@ void fetch_To_dispatch(instruction_trace_t* trace, int current_cycle) {
  * Extra Notes:
  * 	sim_num_insn: the number of instructions in the trace
  */
-counter_t runTomasulo(instruction_trace_t* trace)
-{
-  //initialize instruction queue
-  int i;
-  for (i = 0; i < INSTR_QUEUE_SIZE; i++) {
-    instr_queue[i] = NULL;
-  }
+counter_t runTomasulo(instruction_trace_t *trace) {
+    //initialize instruction queue
+    int i;
+    for (i = 0; i < INSTR_QUEUE_SIZE; i++) {
+        instr_queue[i] = NULL;
+    }
 
-  //initialize reservation stations
-  for (i = 0; i < RESERV_INT_SIZE; i++) {
-      reservINT[i] = NULL;
-  }
+    //initialize reservation stations
+    for (i = 0; i < RESERV_INT_SIZE; i++) {
+        reservINT[i] = NULL;
+    }
 
-  for(i = 0; i < RESERV_FP_SIZE; i++) {
-      reservFP[i] = NULL;
-  }
+    for (i = 0; i < RESERV_FP_SIZE; i++) {
+        reservFP[i] = NULL;
+    }
 
-  //initialize functional units
-  for (i = 0; i < FU_INT_SIZE; i++) {
-    fuINT[i] = NULL;
-  }
+    //initialize functional units
+    for (i = 0; i < FU_INT_SIZE; i++) {
+        fuINT[i] = NULL;
+    }
 
-  for (i = 0; i < FU_FP_SIZE; i++) {
-    fuFP[i] = NULL;
-  }
+    for (i = 0; i < FU_FP_SIZE; i++) {
+        fuFP[i] = NULL;
+    }
 
-  //initialize map_table to no producers
-  int reg;
-  for (reg = 0; reg < MD_TOTAL_REGS; reg++) {
-    map_table[reg] = NULL;
-  }
-  
-  int cycle = 1;
-  while (true) {
+    //initialize map_table to no producers
+    int reg;
+    for (reg = 0; reg < MD_TOTAL_REGS; reg++) {
+        map_table[reg] = NULL;
+    }
 
-     /* ECE552: YOUR CODE GOES HERE */
+    int cycle = 1;
+    while (true) {
 
-     cycle++;
+        /* ECE552: YOUR CODE GOES HERE */
 
-     if (is_simulation_done(sim_num_insn))
-        break;
-  }
-  
-  return cycle;
+        cycle++;
+
+        if (is_simulation_done(sim_num_insn))
+            break;
+    }
+
+    return cycle;
 }
