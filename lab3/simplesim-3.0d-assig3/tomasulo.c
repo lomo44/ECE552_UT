@@ -168,6 +168,7 @@ void CDB_To_retire(int current_cycle) {
                 map_table[i] = NULL;
             }
         }
+        commonDataBus = NULL;
     }
     // Retiring older instruction
     instruction_t* top = tmTopQueue();
@@ -229,6 +230,14 @@ void execute_To_CDB(int current_cycle) {
             }
             ins_toCDB->tom_cdb_cycle = current_cycle;
             commonDataBus = ins_toCDB;
+            for(i = 0; i < RESERV_FP_SIZE; i++){
+                if(reservFP[i]==ins_toCDB)
+                    reservFP[i] = NULL;
+            }
+            for(i = 0; i < RESERV_INT_SIZE; i++){
+                if(reservINT[i]==ins_toCDB)
+                    reservINT[i] = NULL;
+            }
         }
     }
 }
