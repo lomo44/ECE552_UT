@@ -420,7 +420,6 @@ void fetch_To_dispatch(instruction_trace_t *trace, int current_cycle) {
 
     fetch(trace);
     /* ECE552: YOUR CODE GOES HERE */
-    instr_queue[0]
 }
 
 /* 
