@@ -332,6 +332,7 @@ void dispatch_To_issue(int current_cycle) {
         inst_disp = instr_queue[0];
         if (IS_UNCOND_CTRL(inst_disp->op)||IS_COND_CTRL(inst_disp->op)) {
             inst_disp->tom_issue_cycle = current_cycle;
+            tmPopInsQueue();
         }
         if (USES_INT_FU(inst_disp->op)) {
             for (int j = 0; j < 4; ++j) {
@@ -343,6 +344,7 @@ void dispatch_To_issue(int current_cycle) {
                     inst_disp->Q[0] = map_table[inst_disp->_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    tmPopInsQueue();
                     break;
                 }
             }
@@ -357,6 +359,7 @@ void dispatch_To_issue(int current_cycle) {
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    tmPopInsQueue();
                     break;
                 }
             }
