@@ -273,7 +273,8 @@ void issue_To_execute(int current_cycle) {
     }
     if (fp_next != NULL && fuFP[0] == NULL){
         fuFP == fp_next;
-        fp_next->tom_execute_cycle = current_cycle;
+        fp_next->tom_issue_cycle = current_cycle;
+        fp_next->tom_execute_cycle = current_cycle+1;
     }
 
     for (int j = 0; j < 4; ++j) {
@@ -282,30 +283,37 @@ void issue_To_execute(int current_cycle) {
             if (inst_disp->Q[0]=NULL && inst_disp->Q[1]=NULL && inst_disp->Q[2]=NULL && fuINT[0] != inst_disp && fuINT[1] != inst_disp) {
                 if (int_next[0] == NULL)
                     int_next[0] = inst_disp;
-                else if (int_next[1] == NULL)
-                    int_next[1] = inst_disp;
                 else if (int_next[0]->index > inst_disp->index){
                     int_next[1] = int_next[0];
                     int_next[0] = inst_disp;
-                } else if (int_next[1]->index > inst_disp->inde){
+                } else if (int_next[1] == NULL)
                     int_next[1] = inst_disp;
-                }
+                 else if (int_next[1]->index > inst_disp->inde)
+                    int_next[1] = inst_disp;
             }
         }
     }
     if (fuINT[0]==NULL && fuINT[1]==NULL) {
-        fuINT[0] = int_next[0];
-        int_next[0]->tom_execute_cycle = current_cycle;
-        fuINT[1] = int_next[1];
-        int_next[1]->tom_execute_cycle = current_cycle;
+        if (int_next[0] != NULL) {
+            fuINT[0] = int_next[0];
+            int_next[0]->tom_issue_cycle = current_cycle;
+            int_next[0]->tom_execute_cycle = current_cycle+1;
+            if (int_next[1]!= NULL) {
+                fuINT[1] = int_next[1];
+                int_next[1]->tom_issue_cycle = current_cycle;
+                int_next[1]->tom_execute_cycle = current_cycle+1;
+            }
+        }
     }
-    if (fuINT[0]==NULL && fuINT[1]!=NULL) {
+    if (fuINT[0]==NULL && fuINT[1]!=NULL && int_next[0] != NULL) {
         fuINT[0] = int_next[0];
-        int_next[0]->tom_execute_cycle = current_cycle;
+        int_next[0]->tom_issue_cycle = current_cycle;
+        int_next[0]->tom_execute_cycle = current_cycle+1;
     }
-    if (fuINT[0]!=NULL && fuINT[1]==NULL) {
+    if (fuINT[0]!=NULL && fuINT[1]==NULL && int_next[0] != NULL) {
         fuINT[1] = int_next[0];
-        int_next[0]->tom_execute_cycle = current_cycle;
+        int_next[0]->tom_issue_cycle = current_cycle;
+        int_next[0]->tom_execute_cycle = current_cycle+1;
     }
 }
 
@@ -321,28 +329,38 @@ void dispatch_To_issue(int current_cycle) {
 
   /* ECE552: YOUR CODE GOES HERE */
     instruction_t* inst_disp;
-    for (int j = 0; j < 2; ++j) {
-        if (reservFP[j] == NULL) {
-            inst_disp = reservFP[j];
+        inst_disp = instr_queue[0];
+        if (IS_UNCOND_CTRL(inst_disp->op)||IS_COND_CTRL(inst_disp->op)) {
             inst_disp->tom_issue_cycle = current_cycle;
-            map_table[inst_disp->r_out[0]] = inst_disp;
-            map_table[inst_disp->r_out[1]] = inst_disp;
-            inst_disp->Q[0] = map_table[inst_disp->_in[0]];
-            inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
-            inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
         }
-    }
-    for (int j = 0; j < 4; ++j) {
-        if (reservINT[j] == NULL) {
-            inst_disp = reservINT[j];
-            inst_disp->tom_issue_cycle = current_cycle;
-            map_table[inst_disp->r_out[0]] = inst_disp;
-            map_table[inst_disp->r_out[1]] = inst_disp;
-            inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
-            inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
-            inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+        if (USES_INT_FU(inst_disp->op)) {
+            for (int j = 0; j < 4; ++j) {
+                if (reservFP[j] == NULL) {
+                    reservFP[j] = inst_disp;
+                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
+                    inst_disp->Q[0] = map_table[inst_disp->_in[0]];
+                    inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
+                    inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    break;
+                }
+            }
         }
-    }
+        if (USES_FP_FU(inst_disp->op)) {
+            for (int j = 0; j < 2; ++j) {
+                if (reservINT[j] == NULL) {
+                    reservINT[j] = inst_disp;
+                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
+                    inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
+                    inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
+                    inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    break;
+                }
+            }
+        }
 }
 
 /* 
@@ -397,39 +415,7 @@ void fetch_To_dispatch(instruction_trace_t *trace, int current_cycle) {
 
     fetch(trace);
     /* ECE552: YOUR CODE GOES HERE */
-    instruction_t* inst_disp;
-    int dispatched = 0;
-    for (int i = 0; i < 10; i++){
-        inst_disp = instr_queue[i];
-        if (IS_UNCOND_CTRL(inst_disp->op)||IS_COND_CTRL(inst_disp->op)) {
-            inst_disp->tom_dispatch_cycle = current_cycle;
-            break;
-        }
-        if (USES_INT_FU(inst_disp->op)) {
-            for (int j = 0; j < 2; ++j) {
-                if (reservFP[j] == NULL) {
-                    reservFP[j] = inst_disp;
-                    inst_disp->tom_dispatch_cycle = current_cycle;
-                    dispatched = 1;
-                    break;
-                }
-            }
-            if (dispatched)
-                break;
-        }
-        if (USES_FP_FU(inst_disp->op)) {
-            for (int j = 0; j < 4; ++j) {
-                if (reservINT[j] == NULL) {
-                    reservINT[j] = inst_disp;
-                    dispatched = 1;
-                    inst_disp->tom_dispatch_cycle = current_cycle;
-                    break;
-                }
-            }
-            if (dispatched)
-                break;
-        }
-    }
+    instr_queue[0]
 }
 
 /* 
