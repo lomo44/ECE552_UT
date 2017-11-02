@@ -140,8 +140,9 @@ instruction_t* tmTopQueue(){
 static bool is_simulation_done(counter_t sim_insn) {
 
     /* ECE552: YOUR CODE GOES HERE */
-
-    return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
+    if(sim_insn > 1000000)
+        return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
+    return false;
 }
 
 /* 
@@ -155,25 +156,24 @@ static bool is_simulation_done(counter_t sim_insn) {
 void CDB_To_retire(int current_cycle) {
     /* ECE552: YOUR CODE GOES HERE */
     int i,j;
-    if(current_cycle - commonDataBus->tom_cdb_cycle >= 1){
-        for(i = 0; i < RESERV_FP_SIZE; i++){
-            for(j = 0 ; j < 3 ;j++){
-                if(reservFP[i]->Q[j]==commonDataBus){
-                    reservFP[i]->Q[j] = NULL;
+    if(commonDataBus!=NULL){
+        if(current_cycle - commonDataBus->tom_cdb_cycle >= 1){
+            // Broadcasting the result back to CDB
+            for(i = 0; i < RESERV_FP_SIZE; i++){
+                for(j = 0 ; j < 3 ;j++){
+                    if(reservFP[i]->Q[j]==commonDataBus){
+                        reservFP[i]->Q[j] = NULL;
+                    }
                 }
             }
-        }
-        for(i = 0; i < MD_TOTAL_REGS;i++){
-            if(map_table[i]==commonDataBus){
-                map_table[i] = NULL;
+            for(i = 0; i < MD_TOTAL_REGS;i++){
+                if(map_table[i]==commonDataBus){
+                    map_table[i] = NULL;
+                }
             }
+            commonDataBus = NULL;
         }
-        commonDataBus = NULL;
     }
-    // Retiring older instruction
-    instruction_t* top = tmTopQueue();
-    while(top!=NULL && top->tom_cdb_cycle && commonDataBus!=top)
-        tmPopInsQueue();
 }
 
 
@@ -189,6 +189,7 @@ void execute_To_CDB(int current_cycle) {
     /* ECE552: YOUR CODE GOES HERE */
     int i;
     instruction_t* ins_toCDB = NULL;
+    // Getting the oldest FP instruction in the function unit
     for(i = 0; i < FU_FP_SIZE; i++){
         instruction_t* current_instruction = fuFP[i];
         if(WRITES_CDB(current_instruction.op) && current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
@@ -202,6 +203,7 @@ void execute_To_CDB(int current_cycle) {
             }
         }
     }
+    // Getting the oldest Int instruction in the function unit
     for(i = 0; i < FU_INT_SIZE; i++){
         instruction_t* current_instruction = fuINT[i];
         if(WRITES_CDB(current_instruction.op) &&current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
@@ -466,7 +468,11 @@ counter_t runTomasulo(instruction_trace_t *trace) {
     while (true) {
 
         /* ECE552: YOUR CODE GOES HERE */
-
+        fetch_To_dispatch(trace,cycle);
+        dispatch_To_issue(cycle);
+        issue_To_execute(cycle);
+        execute_To_CDB(cycle);
+        CDB_To_retire(cycle);
         cycle++;
 
         if (is_simulation_done(sim_num_insn))
