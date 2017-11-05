@@ -140,7 +140,7 @@ instruction_t* tmTopQueue(){
 static bool is_simulation_done(counter_t sim_insn) {
 
     /* ECE552: YOUR CODE GOES HERE */
-    if(sim_insn > 1000000)
+    if(sim_insn >= 1000000)
         return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
     return false;
 }
