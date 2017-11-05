@@ -425,9 +425,11 @@ void fetch_To_dispatch(instruction_trace_t *trace, int current_cycle) {
 
     fetch(trace);
     /* ECE552: YOUR CODE GOES HERE */
-    for (instruction_t i= 0; i < INSTR_QUEUE_SIZE; i++) {
-        if (instr_queue[i]->tom_dispatch_cycle == -1) {
-            instr_queue[i]->tom_dispatch_cycle = current_cycle;
+    for (int i= 0; i < INSTR_QUEUE_SIZE; i++) {
+        if (instr_queue[i]!= NULL){
+            if (instr_queue[i]->tom_dispatch_cycle == -1) {
+                instr_queue[i]->tom_dispatch_cycle = current_cycle;
+            }
         }
     }
 }
