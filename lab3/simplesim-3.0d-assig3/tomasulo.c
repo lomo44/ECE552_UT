@@ -279,8 +279,7 @@ void issue_To_execute(int current_cycle) {
     }
     if (fp_next != NULL && fuFP[0] == NULL){
         fuFP[0] = fp_next;
-        fp_next->tom_issue_cycle = current_cycle;
-        fp_next->tom_execute_cycle = current_cycle+1;
+        fp_next->tom_execute_cycle = current_cycle;
     }
 
     for (int j = 0; j < 4; ++j) {
@@ -306,20 +305,17 @@ void issue_To_execute(int current_cycle) {
             int_next[0]->tom_execute_cycle = current_cycle+1;
             if (int_next[1]!= NULL) {
                 fuINT[1] = int_next[1];
-                int_next[1]->tom_issue_cycle = current_cycle;
-                int_next[1]->tom_execute_cycle = current_cycle+1;
+                int_next[1]->tom_execute_cycle = current_cycle;
             }
         }
     }
     if (fuINT[0]==NULL && fuINT[1]!=NULL && int_next[0] != NULL) {
         fuINT[0] = int_next[0];
-        int_next[0]->tom_issue_cycle = current_cycle;
-        int_next[0]->tom_execute_cycle = current_cycle+1;
+        int_next[0]->tom_execute_cycle = current_cycle;
     }
     if (fuINT[0]!=NULL && fuINT[1]==NULL && int_next[0] != NULL) {
         fuINT[1] = int_next[0];
-        int_next[0]->tom_issue_cycle = current_cycle;
-        int_next[0]->tom_execute_cycle = current_cycle+1;
+        int_next[0]->tom_execute_cycle = current_cycle;
     }
 }
 
@@ -345,7 +341,7 @@ void dispatch_To_issue(int current_cycle) {
             for (int j = 0; j < 4; ++j) {
                 if (reservFP[j] == NULL) {
                     reservFP[j] = inst_disp;
-                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    inst_disp->tom_issue_cycle = current_cycle;
                     map_table[inst_disp->r_out[0]] = inst_disp;
                     map_table[inst_disp->r_out[1]] = inst_disp;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
@@ -360,7 +356,7 @@ void dispatch_To_issue(int current_cycle) {
             for (int j = 0; j < 2; ++j) {
                 if (reservINT[j] == NULL) {
                     reservINT[j] = inst_disp;
-                    inst_disp->tom_dispatch_cycle = current_cycle;
+                    inst_disp->tom_issue_cycle = current_cycle;
                     map_table[inst_disp->r_out[0]] = inst_disp;
                     map_table[inst_disp->r_out[1]] = inst_disp;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
@@ -429,6 +425,11 @@ void fetch_To_dispatch(instruction_trace_t *trace, int current_cycle) {
 
     fetch(trace);
     /* ECE552: YOUR CODE GOES HERE */
+    for (instruction_t i= 0; i < INSTR_QUEUE_SIZE; i++) {
+        if (instr_queue[i]->tom_dispatch_cycle == -1) {
+            instr_queue[i]->tom_dispatch_cycle = current_cycle;
+        }
+    }
 }
 
 /* 
