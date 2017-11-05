@@ -97,7 +97,7 @@ static instruction_t *commonDataBus = NULL;
 static instruction_t *map_table[MD_TOTAL_REGS];
 
 //the index of the last instruction fetched
-static int fetch_index = 0;
+static int fetch_index = 1;
 
 
 void tmPushInsQueue(instruction_t *in_pInstuction) {
@@ -140,7 +140,7 @@ instruction_t* tmTopQueue(){
 static bool is_simulation_done(counter_t sim_insn) {
 
     /* ECE552: YOUR CODE GOES HERE */
-    if(sim_insn >= 1000000)
+    if(fetch_index >= sim_insn && instr_queue_size == 0)
         return true; //ECE552: you can change this as needed; we've added this so the code provided to you compiles
     return false;
 }
@@ -335,7 +335,8 @@ void dispatch_To_issue(int current_cycle) {
 
   /* ECE552: YOUR CODE GOES HERE */
     instruction_t* inst_disp;
-        inst_disp = instr_queue[0];
+    inst_disp = instr_queue[0];
+    if(inst_disp != NULL){
         if (IS_UNCOND_CTRL(inst_disp->op)||IS_COND_CTRL(inst_disp->op)) {
             inst_disp->tom_issue_cycle = current_cycle;
             tmPopInsQueue();
@@ -370,6 +371,7 @@ void dispatch_To_issue(int current_cycle) {
                 }
             }
         }
+    }
 }
 
 /* 
@@ -382,33 +384,36 @@ void dispatch_To_issue(int current_cycle) {
  */
 void fetch(instruction_trace_t *trace) {
     /* ECE552: YOUR CODE GOES HERE */
-    instruction_trace_t* curretn_trace = trace;
-    instruction_t* current_instruction = NULL;
-    // Getting into the correct trace page and index
-    int page_index = fetch_index / INSTR_TRACE_SIZE;
-    int instruction_index = fetch_index % INSTR_TRACE_SIZE;
-    int pass_index = 0;
-    while(pass_index!=page_index){
-        trace = trace->next;
-        pass_index++;
-    }
-    // getting the correct trace
-    current_instruction = &trace->table[page_index];
-    // if the trace is a trap, move to the next trace
-    while(IS_TRAP(current_instruction->op)){
-        page_index++;
-        if(page_index >= INSTR_TRACE_SIZE){
-            page_index = page_index%INSTR_TRACE_SIZE;
+    if(fetch_index < sim_num_insn){
+        instruction_trace_t* curretn_trace = trace;
+        instruction_t* current_instruction = NULL;
+        // Getting into the correct trace page and index
+        int page_index = fetch_index / INSTR_TRACE_SIZE;
+        int instruction_index = fetch_index % INSTR_TRACE_SIZE;
+        int pass_index = 0;
+        while(pass_index!=page_index){
             trace = trace->next;
+            pass_index++;
         }
-        current_instruction = &trace->table[page_index];
+        // getting the correct trace
+        current_instruction = &trace->table[instruction_index];
+        // if the trace is a trap, move to the next trace
+        while(IS_TRAP(current_instruction->op)){
+            page_index++;
+            if(page_index >= INSTR_TRACE_SIZE){
+                page_index = page_index%INSTR_TRACE_SIZE;
+                trace = trace->next;
+            }
+            current_instruction = &trace->table[page_index];
+        }
+        // Initialize its cycle count
+        current_instruction->tom_execute_cycle = -1;
+        current_instruction->tom_cdb_cycle = -1;
+        current_instruction->tom_dispatch_cycle = -1;
+        current_instruction->tom_issue_cycle = -1;
+        tmPushInsQueue(current_instruction);
+        fetch_index++;
     }
-    // Initialize its cycle count
-    current_instruction->tom_execute_cycle = -1;
-    current_instruction->tom_cdb_cycle = -1;
-    current_instruction->tom_dispatch_cycle = -1;
-    current_instruction->tom_issue_cycle = -1;
-    tmPushInsQueue(current_instruction);
 }
 
 /* 
@@ -471,11 +476,11 @@ counter_t runTomasulo(instruction_trace_t *trace) {
     while (true) {
 
         /* ECE552: YOUR CODE GOES HERE */
-        fetch_To_dispatch(trace,cycle);
-        dispatch_To_issue(cycle);
-        issue_To_execute(cycle);
-        execute_To_CDB(cycle);
         CDB_To_retire(cycle);
+        execute_To_CDB(cycle);
+        issue_To_execute(cycle);
+        dispatch_To_issue(cycle);
+        fetch_To_dispatch(trace,cycle);
         cycle++;
 
         if (is_simulation_done(sim_num_insn))
