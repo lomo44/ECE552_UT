@@ -410,8 +410,8 @@ void fetch(instruction_trace_t *trace) {
         instruction_trace_t* curretn_trace = trace;
         instruction_t* current_instruction = NULL;
         // Getting into the correct trace page and index
-        int page_index = fetch_index / INSTR_TRACE_SIZE;
-        int instruction_index = fetch_index % INSTR_TRACE_SIZE;
+        int page_index = (fetch_index+1) / INSTR_TRACE_SIZE;
+        int instruction_index = (fetch_index+1) % INSTR_TRACE_SIZE;
         int pass_index = 0;
         while(pass_index!=page_index){
             trace = trace->next;
@@ -421,12 +421,13 @@ void fetch(instruction_trace_t *trace) {
         current_instruction = &trace->table[instruction_index];
         // if the trace is a trap, move to the next trace
         while(IS_TRAP(current_instruction->op)){
-            page_index++;
-            if(page_index >= INSTR_TRACE_SIZE){
-                page_index = page_index%INSTR_TRACE_SIZE;
+            instruction_index++;
+            if(instruction_index >= INSTR_TRACE_SIZE){
+                instruction_index = instruction_index%INSTR_TRACE_SIZE;
                 trace = trace->next;
+                page_index++;
             }
-            current_instruction = &trace->table[page_index];
+            current_instruction = &trace->table[instruction_index];
         }
         // Initialize its cycle count
         current_instruction->tom_execute_cycle = -1;
@@ -434,7 +435,7 @@ void fetch(instruction_trace_t *trace) {
         current_instruction->tom_dispatch_cycle = -1;
         current_instruction->tom_issue_cycle = -1;
         tmPushInsQueue(current_instruction);
-        fetch_index++;
+        fetch_index = current_instruction->index;
     }
 }
 
