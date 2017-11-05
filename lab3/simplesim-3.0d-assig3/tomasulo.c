@@ -192,13 +192,15 @@ void execute_To_CDB(int current_cycle) {
     // Getting the oldest FP instruction in the function unit
     for(i = 0; i < FU_FP_SIZE; i++){
         instruction_t* current_instruction = fuFP[i];
-        if(WRITES_CDB(current_instruction.op) && current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
-            if(ins_toCDB == NULL){
-                ins_toCDB = current_instruction;
-            }
-            else{
-                if(current_instruction->index < ins_toCDB){
+        if(current_instruction!=NULL){
+            if(WRITES_CDB(current_instruction->op) && current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
+                if(ins_toCDB == NULL){
                     ins_toCDB = current_instruction;
+                }
+                else{
+                    if(current_instruction->index < ins_toCDB->index){
+                        ins_toCDB = current_instruction;
+                    }
                 }
             }
         }
@@ -206,13 +208,15 @@ void execute_To_CDB(int current_cycle) {
     // Getting the oldest Int instruction in the function unit
     for(i = 0; i < FU_INT_SIZE; i++){
         instruction_t* current_instruction = fuINT[i];
-        if(WRITES_CDB(current_instruction.op) &&current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
-            if(ins_toCDB == NULL){
-                ins_toCDB = current_instruction;
-            }
-            else{
-                if(current_instruction->index < ins_toCDB){
+        if(current_instruction!=NULL){
+            if(WRITES_CDB(current_instruction->op) &&current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
+                if(ins_toCDB == NULL){
                     ins_toCDB = current_instruction;
+                }
+                else{
+                    if(current_instruction->index < ins_toCDB->index){
+                        ins_toCDB = current_instruction;
+                    }
                 }
             }
         }
@@ -222,12 +226,12 @@ void execute_To_CDB(int current_cycle) {
         if(commonDataBus==NULL){
             for(i = 0; i<FU_INT_SIZE;i++){
                 if(fuINT[i] == ins_toCDB){
-                    fuINT[i] == NULL;
+                    fuINT[i] = NULL;
                 }
             }
             for(i = 0; i<FU_FP_SIZE;i++){
                 if(fuFP[i] == ins_toCDB){
-                    fuFP[i] == NULL;
+                    fuFP[i] = NULL;
                 }
             }
             ins_toCDB->tom_cdb_cycle = current_cycle;
@@ -263,9 +267,9 @@ void issue_To_execute(int current_cycle) {
     int_next[1]=NULL;
     instruction_t* inst_disp;
     for (int i = 0; i < 2; ++i) {
-        if (reservFP[i] == NULL) {
+        if (reservFP[i] != NULL) {
             inst_disp = reservFP[i];
-            if (inst_disp->Q[0]=NULL && inst_disp->Q[1]=NULL && inst_disp->Q[2]=NULL) {
+            if (inst_disp->Q[0]==NULL && inst_disp->Q[1]==NULL && inst_disp->Q[2]==NULL) {
                 if (fp_next == NULL)
                     fp_next = inst_disp;
                 else if (fp_next->index > inst_disp->index)
@@ -274,15 +278,15 @@ void issue_To_execute(int current_cycle) {
         }
     }
     if (fp_next != NULL && fuFP[0] == NULL){
-        fuFP == fp_next;
+        fuFP[0] = fp_next;
         fp_next->tom_issue_cycle = current_cycle;
         fp_next->tom_execute_cycle = current_cycle+1;
     }
 
     for (int j = 0; j < 4; ++j) {
-        if (reservINT[j] == NULL) {
-            inst_disp = reservFP[i];
-            if (inst_disp->Q[0]=NULL && inst_disp->Q[1]=NULL && inst_disp->Q[2]=NULL && fuINT[0] != inst_disp && fuINT[1] != inst_disp) {
+        if (reservINT[j] != NULL) {
+            inst_disp = reservFP[j];
+            if (inst_disp->Q[0]==NULL && inst_disp->Q[1]==NULL && inst_disp->Q[2]==NULL && fuINT[0] != inst_disp && fuINT[1] != inst_disp) {
                 if (int_next[0] == NULL)
                     int_next[0] = inst_disp;
                 else if (int_next[0]->index > inst_disp->index){
@@ -290,7 +294,7 @@ void issue_To_execute(int current_cycle) {
                     int_next[0] = inst_disp;
                 } else if (int_next[1] == NULL)
                     int_next[1] = inst_disp;
-                 else if (int_next[1]->index > inst_disp->inde)
+                 else if (int_next[1]->index > inst_disp->index)
                     int_next[1] = inst_disp;
             }
         }
@@ -343,7 +347,7 @@ void dispatch_To_issue(int current_cycle) {
                     inst_disp->tom_dispatch_cycle = current_cycle;
                     map_table[inst_disp->r_out[0]] = inst_disp;
                     map_table[inst_disp->r_out[1]] = inst_disp;
-                    inst_disp->Q[0] = map_table[inst_disp->_in[0]];
+                    inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
                     tmPopInsQueue();
@@ -391,7 +395,7 @@ void fetch(instruction_trace_t *trace) {
     // getting the correct trace
     current_instruction = &trace->table[page_index];
     // if the trace is a trap, move to the next trace
-    while(IS_TRAP(current_instruction)){
+    while(IS_TRAP(current_instruction->op)){
         page_index++;
         if(page_index >= INSTR_TRACE_SIZE){
             page_index = page_index%INSTR_TRACE_SIZE;
@@ -400,10 +404,10 @@ void fetch(instruction_trace_t *trace) {
         current_instruction = &trace->table[page_index];
     }
     // Initialize its cycle count
-    current_instruction.tom_execute_cycle = -1;
-    current_instruction.tom_cdb_cycle = -1;
-    current_instruction.tom_dispatch_cycle = -1;
-    current_instruction.tom_issue_cycle = -1;
+    current_instruction->tom_execute_cycle = -1;
+    current_instruction->tom_cdb_cycle = -1;
+    current_instruction->tom_dispatch_cycle = -1;
+    current_instruction->tom_issue_cycle = -1;
     tmPushInsQueue(current_instruction);
 }
 
