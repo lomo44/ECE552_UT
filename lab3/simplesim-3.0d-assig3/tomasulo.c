@@ -342,11 +342,11 @@ void dispatch_To_issue(int current_cycle) {
                 if (reservFP[j] == NULL) {
                     reservFP[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
-                    map_table[inst_disp->r_out[0]] = inst_disp;
-                    map_table[inst_disp->r_out[1]] = inst_disp;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
                     tmPopInsQueue();
                     break;
                 }
@@ -357,11 +357,11 @@ void dispatch_To_issue(int current_cycle) {
                 if (reservINT[j] == NULL) {
                     reservINT[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
-                    map_table[inst_disp->r_out[0]] = inst_disp;
-                    map_table[inst_disp->r_out[1]] = inst_disp;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
+                    map_table[inst_disp->r_out[0]] = inst_disp;
+                    map_table[inst_disp->r_out[1]] = inst_disp;
                     tmPopInsQueue();
                     break;
                 }
