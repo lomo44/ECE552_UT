@@ -160,9 +160,20 @@ void CDB_To_retire(int current_cycle) {
         if(current_cycle - commonDataBus->tom_cdb_cycle >= 1){
             // Broadcasting the result back to CDB
             for(i = 0; i < RESERV_FP_SIZE; i++){
-                for(j = 0 ; j < 3 ;j++){
-                    if(reservFP[i]->Q[j]==commonDataBus){
-                        reservFP[i]->Q[j] = NULL;
+                if(reservFP[i]!=NULL){
+                    for(j = 0 ; j < 3 ;j++){
+                        if(reservFP[i]->Q[j]==commonDataBus){
+                            reservFP[i]->Q[j] = NULL;
+                        }
+                    }
+                }
+            }
+            for(i = 0; i < RESERV_INT_SIZE; i++){
+                if(reservINT[i]!=NULL){
+                    for(j = 0 ; j < 3 ;j++){
+                        if(reservINT[i]->Q[j]==commonDataBus){
+                            reservINT[i]->Q[j] = NULL;
+                        }
                     }
                 }
             }
@@ -193,14 +204,19 @@ void execute_To_CDB(int current_cycle) {
     for(i = 0; i < FU_FP_SIZE; i++){
         instruction_t* current_instruction = fuFP[i];
         if(current_instruction!=NULL){
-            if(WRITES_CDB(current_instruction->op) && current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
-                if(ins_toCDB == NULL){
-                    ins_toCDB = current_instruction;
-                }
-                else{
-                    if(current_instruction->index < ins_toCDB->index){
+            if(current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
+                if(WRITES_CDB(current_instruction->op)){
+                    if(ins_toCDB == NULL){
                         ins_toCDB = current_instruction;
                     }
+                    else{
+                        if(current_instruction->index < ins_toCDB->index){
+                            ins_toCDB = current_instruction;
+                        }
+                    }
+                }
+                else{
+                    fuFP[i] = NULL;
                 }
             }
         }
@@ -209,14 +225,24 @@ void execute_To_CDB(int current_cycle) {
     for(i = 0; i < FU_INT_SIZE; i++){
         instruction_t* current_instruction = fuINT[i];
         if(current_instruction!=NULL){
-            if(WRITES_CDB(current_instruction->op) &&current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
-                if(ins_toCDB == NULL){
-                    ins_toCDB = current_instruction;
-                }
-                else{
-                    if(current_instruction->index < ins_toCDB->index){
+            if(current_cycle - current_instruction->tom_execute_cycle >= FU_INT_LATENCY){
+                if(WRITES_CDB(current_instruction->op)){
+                    if(ins_toCDB == NULL){
                         ins_toCDB = current_instruction;
                     }
+                    else{
+                        if(current_instruction->index < ins_toCDB->index){
+                            ins_toCDB = current_instruction;
+                        }
+                    }
+                }
+                else{
+                    int j;
+                    for(j = 0; j < RESERV_INT_SIZE; j++){
+                        if(reservINT[j]==current_instruction)
+                            reservINT[j] = NULL;
+                    }
+                    fuINT[i] = NULL;
                 }
             }
         }
@@ -224,18 +250,16 @@ void execute_To_CDB(int current_cycle) {
     // Push the selected instruction to CDB
     if(ins_toCDB!=NULL){
         if(commonDataBus==NULL){
-            for(i = 0; i<FU_INT_SIZE;i++){
-                if(fuINT[i] == ins_toCDB){
-                    fuINT[i] = NULL;
-                }
-            }
-            for(i = 0; i<FU_FP_SIZE;i++){
-                if(fuFP[i] == ins_toCDB){
-                    fuFP[i] = NULL;
-                }
-            }
             ins_toCDB->tom_cdb_cycle = current_cycle;
             commonDataBus = ins_toCDB;
+            for(i = 0; i < FU_INT_SIZE;i++){
+                if(fuINT[i]==commonDataBus)
+                    fuINT[i]=NULL;
+            }
+            for(i = 0; i < FU_FP_SIZE;i++){
+                if(fuFP[i]==commonDataBus)
+                    fuFP[i]=NULL;
+            }
             for(i = 0; i < RESERV_FP_SIZE; i++){
                 if(reservFP[i]==ins_toCDB)
                     reservFP[i] = NULL;
@@ -284,7 +308,7 @@ void issue_To_execute(int current_cycle) {
 
     for (int j = 0; j < 4; ++j) {
         if (reservINT[j] != NULL) {
-            inst_disp = reservFP[j];
+            inst_disp = reservINT[j];
             if (inst_disp->Q[0]==NULL && inst_disp->Q[1]==NULL && inst_disp->Q[2]==NULL && fuINT[0] != inst_disp && fuINT[1] != inst_disp) {
                 if (int_next[0] == NULL)
                     int_next[0] = inst_disp;
@@ -339,14 +363,16 @@ void dispatch_To_issue(int current_cycle) {
         }
         if (USES_INT_FU(inst_disp->op)) {
             for (int j = 0; j < 4; ++j) {
-                if (reservFP[j] == NULL) {
-                    reservFP[j] = inst_disp;
+                if (reservINT[j] == NULL) {
+                    reservINT[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
                     inst_disp->Q[2] = map_table[inst_disp->r_in[2]];
-                    map_table[inst_disp->r_out[0]] = inst_disp;
-                    map_table[inst_disp->r_out[1]] = inst_disp;
+                    if(WRITES_CDB(inst_disp->op)){
+                        map_table[inst_disp->r_out[0]] = inst_disp;
+                        map_table[inst_disp->r_out[1]] = inst_disp;
+                    }
                     tmPopInsQueue();
                     break;
                 }
@@ -354,8 +380,8 @@ void dispatch_To_issue(int current_cycle) {
         }
         if (USES_FP_FU(inst_disp->op)) {
             for (int j = 0; j < 2; ++j) {
-                if (reservINT[j] == NULL) {
-                    reservINT[j] = inst_disp;
+                if (reservFP[j] == NULL) {
+                    reservFP[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
                     inst_disp->Q[0] = map_table[inst_disp->r_in[0]];
                     inst_disp->Q[1] = map_table[inst_disp->r_in[1]];
@@ -380,7 +406,7 @@ void dispatch_To_issue(int current_cycle) {
  */
 void fetch(instruction_trace_t *trace) {
     /* ECE552: YOUR CODE GOES HERE */
-    if(fetch_index < sim_num_insn){
+    if(fetch_index < sim_num_insn && instr_queue_size < INSTR_QUEUE_SIZE){
         instruction_trace_t* curretn_trace = trace;
         instruction_t* current_instruction = NULL;
         // Getting into the correct trace page and index
@@ -482,8 +508,8 @@ counter_t runTomasulo(instruction_trace_t *trace) {
         CDB_To_retire(cycle);
         execute_To_CDB(cycle);
         issue_To_execute(cycle);
-        dispatch_To_issue(cycle);
         fetch_To_dispatch(trace,cycle);
+        dispatch_To_issue(cycle);
         cycle++;
 
         if (is_simulation_done(sim_num_insn))
