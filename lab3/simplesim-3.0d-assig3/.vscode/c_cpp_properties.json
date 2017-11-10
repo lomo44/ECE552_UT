@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/usr/include/c++/6",
+                "/usr/include/x86_64-linux-gnu/c++/6",
+                "/usr/local/include",
+                "/usr/lib/clang/3.8.1/include",
+                "/usr/include",
+                "/usr/include/x86_64-linux-gnu",
+                "/nfs/ug/homes-5/l/lizhuan1/ECE552_UT/lab3/simplesim-3.0d-assig3",
+                "${workspaceRoot}"
+            ],
+            "defines": [],
+            "intelliSenseMode": "clang-x64",
+            "browse": {
+                "path": [
+                    "/usr/include/c++/6",
+                    "/usr/include/x86_64-linux-gnu/c++/6",
+                    "/usr/local/include",
+                    "/usr/lib/clang/3.8.1/include",
+                    "/usr/include",
+                    "/usr/include/x86_64-linux-gnu",
+                    "/nfs/ug/homes-5/l/lizhuan1/ECE552_UT/lab3/simplesim-3.0d-assig3",
+                    "${workspaceRoot}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        }
+    ],
+    "version": 3
+}
