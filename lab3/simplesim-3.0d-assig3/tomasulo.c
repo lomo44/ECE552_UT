@@ -97,7 +97,7 @@ static instruction_t *commonDataBus = NULL;
 static instruction_t *map_table[MD_TOTAL_REGS];
 
 //the index of the last instruction fetched
-static int fetch_index = 1;
+static int fetch_index = 0;
 
 
 void tmPushInsQueue(instruction_t *in_pInstuction) {
@@ -205,7 +205,6 @@ void execute_To_CDB(int current_cycle) {
         instruction_t* current_instruction = fuFP[i];
         if(current_instruction!=NULL){
             if(current_cycle - current_instruction->tom_execute_cycle >= FU_FP_LATENCY){
-                if(WRITES_CDB(current_instruction->op)){
                     if(ins_toCDB == NULL){
                         ins_toCDB = current_instruction;
                     }
@@ -214,10 +213,6 @@ void execute_To_CDB(int current_cycle) {
                             ins_toCDB = current_instruction;
                         }
                     }
-                }
-                else{
-                    fuFP[i] = NULL;
-                }
             }
         }
     }
@@ -309,7 +304,7 @@ void issue_To_execute(int current_cycle) {
     for (int j = 0; j < 4; ++j) {
         if (reservINT[j] != NULL) {
             inst_disp = reservINT[j];
-            if (inst_disp->Q[0]==NULL && inst_disp->Q[1]==NULL && inst_disp->Q[2]==NULL && fuINT[0] != inst_disp && fuINT[1] != inst_disp) {
+            if (inst_disp->Q[0]==NULL && inst_disp->Q[1]==NULL && inst_disp->Q[2]==NULL && inst_disp->tom_execute_cycle == -1) {
                 if (int_next[0] == NULL)
                     int_next[0] = inst_disp;
                 else if (int_next[0]->index > inst_disp->index){
@@ -322,25 +317,38 @@ void issue_To_execute(int current_cycle) {
             }
         }
     }
-    if (fuINT[0]==NULL && fuINT[1]==NULL) {
-        if (int_next[0] != NULL) {
-            fuINT[0] = int_next[0];
-            int_next[0]->tom_issue_cycle = current_cycle;
-            int_next[0]->tom_execute_cycle = current_cycle+1;
-            if (int_next[1]!= NULL) {
-                fuINT[1] = int_next[1];
-                int_next[1]->tom_execute_cycle = current_cycle;
+    for (int k = 0; k< FU_INT_SIZE;k++){
+        if (fuINT[k] == NULL) {
+	        if (int_next[0] != NULL)
+	        {
+	            fuINT[k] = int_next[0] ;
+	            int_next[0]  = NULL;
+	            fuINT[k]->tom_execute_cycle = current_cycle;
+	        } else if(int_next[1]  != NULL) {
+                fuINT[k] = int_next[1];
+                int_next[1]  = NULL;
+	            fuINT[k]->tom_execute_cycle = current_cycle;
             }
         }
     }
-    if (fuINT[0]==NULL && fuINT[1]!=NULL && int_next[0] != NULL) {
-        fuINT[0] = int_next[0];
-        int_next[0]->tom_execute_cycle = current_cycle;
-    }
-    if (fuINT[0]!=NULL && fuINT[1]==NULL && int_next[0] != NULL) {
-        fuINT[1] = int_next[0];
-        int_next[0]->tom_execute_cycle = current_cycle;
-    }
+    // if (fuINT[0]==NULL && fuINT[1]==NULL) {
+    //     if (int_next[0] != NULL) {
+    //         fuINT[0] = int_next[0];
+    //         int_next[0]->tom_execute_cycle = current_cycle;
+    //         if (int_next[1]!= NULL) {
+    //             fuINT[1] = int_next[1];
+    //             int_next[1]->tom_execute_cycle = current_cycle;
+    //         }
+    //     }
+    // }
+    // if (fuINT[0]==NULL && fuINT[1]!=NULL && int_next[0] != NULL) {
+    //     fuINT[0] = int_next[0];
+    //     int_next[0]->tom_execute_cycle = current_cycle;
+    // }
+    // if (fuINT[0]!=NULL && fuINT[1]==NULL && int_next[0] != NULL) {
+    //     fuINT[1] = int_next[0];
+    //     int_next[0]->tom_execute_cycle = current_cycle;
+    // }
 }
 
 /* 
@@ -366,7 +374,7 @@ void dispatch_To_issue(int current_cycle) {
                 if (reservINT[j] == NULL) {
                     reservINT[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
-                    for (int K = 0;k<3;K++){
+                    for (int k = 0;k<3;k++){
                         if (inst_disp->r_in[k] >=0 && inst_disp->r_in[k]< MD_TOTAL_REGS) {
                             inst_disp->Q[k] = map_table[inst_disp->r_in[k]];
                         }
@@ -385,7 +393,7 @@ void dispatch_To_issue(int current_cycle) {
                 if (reservFP[j] == NULL) {
                     reservFP[j] = inst_disp;
                     inst_disp->tom_issue_cycle = current_cycle;
-                    for (int K = 0;k<3;K++){
+                    for (int k = 0;k<3;k++){
                         if (inst_disp->r_in[k] >=0 && inst_disp->r_in[k]< MD_TOTAL_REGS) {
                             inst_disp->Q[k] = map_table[inst_disp->r_in[k]];
                         }
@@ -520,6 +528,6 @@ counter_t runTomasulo(instruction_trace_t *trace) {
         if (is_simulation_done(sim_num_insn))
             break;
     }
-
+    print_all_instr (trace,20);
     return cycle;
 }
