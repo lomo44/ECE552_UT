@@ -521,7 +521,7 @@ cache_reg_stats(struct cache_t *cp,	/* cache instance */
 
 
 }
-
+md_addr_t get_PC();
 /* Next Line Prefetcher */
 void next_line_prefetcher(struct cache_t *cp, md_addr_t addr) {
 /* ECE552 Assignment 4 - BEGIN CODE*/
@@ -532,16 +532,9 @@ void next_line_prefetcher(struct cache_t *cp, md_addr_t addr) {
   }
 /* ECE552 Assignment 4 - END CODE*/
 }
-
-/* Open Ended Prefetcher */
-void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
-	; 
-}
-md_addr_t get_PC();
-/* Stride Prefetcher */
 void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
   md_addr_t current_pc = get_PC();
-  int table_index = (current_pc >> 2) % cp->prefetch_type;
+  int table_index = (current_pc >> 3) % cp->prefetch_type;
   if(cp->m_pRPTTable[table_index].m_PCAddress!=current_pc){
     // New entry, re initialize entry
     cp->m_pRPTTable[table_index].m_PCAddress = current_pc;
@@ -605,6 +598,13 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
     cp->m_pRPTTable[table_index].m_PreviousAddress = addr;
   }
 }
+/* Open Ended Prefetcher */
+void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
+	stride_prefetcher(cp,addr);
+}
+
+/* Stride Prefetcher */
+
 
 
 
