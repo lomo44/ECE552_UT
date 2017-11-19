@@ -511,7 +511,7 @@ void next_line_prefetcher(struct cache_t *cp, md_addr_t addr) {
   md_addr_t p_addr = addr + cp->bsize;
   if (cache_probe(cp,p_addr) == 0)
   {
-      cache_access (cp,Read,p_addr,NULL,cp->bsize,0,NULL,NULL,1);
+      cache_access (cp,Read,CACHE_BADDR(cp,p_addr),NULL,cp->bsize,0,NULL,NULL,1);
   }
 /* ECE552 Assignment 4 - END CODE*/
 }
