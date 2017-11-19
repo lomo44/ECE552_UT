@@ -110,6 +110,22 @@ enum cache_policy {
 #define CACHE_BLK_VALID		0x00000001	/* block in valid, in use */
 #define CACHE_BLK_DIRTY		0x00000002	/* dirty block */
 
+/* ECE552 Assignment 4 - BEGIN CODE*/
+typedef enum _RPTState{
+  eState_Init,
+  eState_Transient,
+  eState_Steady,
+  eState_No_Predict,
+  eState_Not_Used
+} eRPTState;
+
+typedef struct _RPTEntry{
+  md_addr_t m_PCAddress;
+  md_addr_t m_PreviousAddress;
+  int m_iStride;
+  eRPTState m_eEntryState;
+} RPTEntry;
+/* ECE552 Assignment 4 - END CODE*/
 /* cache block (or line) definition */
 struct cache_blk_t
 {
@@ -218,7 +234,7 @@ struct cache_t
 
   /* data blocks */
   byte_t *data;			/* pointer to data blocks allocation */
-
+  RPTEntry* m_pRPTTable;
   /* NOTE: this is a variable-size tail array, this must be the LAST field
      defined in this structure! */
   struct cache_set_t sets[1];	/* each entry is a set */
