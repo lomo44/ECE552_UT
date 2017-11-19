@@ -1,7 +1,7 @@
 # C++ File
 
 *.o
-
+*.a
 # cmake 
 
 cmake-build-debug/
@@ -12,3 +12,7 @@ cmake-build-debug/
 
 # dump file
 *.dump
+
+
+sim-cache
+sysprobe
