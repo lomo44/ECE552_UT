@@ -541,7 +541,7 @@ md_addr_t get_PC();
 /* Stride Prefetcher */
 void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
   md_addr_t current_pc = get_PC();
-  int table_index = (current_pc) % cp->prefetch_type;
+  int table_index = (current_pc >> 2) % cp->prefetch_type;
   if(cp->m_pRPTTable[table_index].m_PCAddress!=current_pc){
     // New entry, re initialize entry
     cp->m_pRPTTable[table_index].m_PCAddress = current_pc;
@@ -550,6 +550,7 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
     cp->m_pRPTTable[table_index].m_eEntryState = eState_Init;
   }
   else{
+
     md_addr_t predicted_address = cp->m_pRPTTable[table_index].m_PreviousAddress+cp->m_pRPTTable[table_index].m_iStride;
     md_addr_t target_address = CACHE_BADDR(cp,addr+cp->m_pRPTTable[table_index].m_iStride);
     switch(cp->m_pRPTTable[table_index].m_eEntryState){
@@ -557,57 +558,35 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
         // Check if the access address if
         if(predicted_address == addr){
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Steady;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         else{
           cp->m_pRPTTable[table_index].m_iStride = addr - cp->m_pRPTTable[table_index].m_PreviousAddress;
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Transient;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         break;
       }
       case eState_Transient:{
         if(predicted_address == addr){
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Steady;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         else{
           cp->m_pRPTTable[table_index].m_iStride = addr - cp->m_pRPTTable[table_index].m_PreviousAddress;
           cp->m_pRPTTable[table_index].m_eEntryState = eState_No_Predict;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         break;
       }
       case eState_Steady:{
         if(predicted_address == addr){
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Steady;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         else{
-          cp->m_pRPTTable[table_index].m_iStride = addr - cp->m_pRPTTable[table_index].m_PreviousAddress;
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Init;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         break;
       }
       case eState_No_Predict:{
         if(predicted_address == addr){
           cp->m_pRPTTable[table_index].m_eEntryState = eState_Transient;
-          if(cache_probe(cp,target_address)==0){
-            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
-          }
         }
         else{
           cp->m_pRPTTable[table_index].m_iStride = addr - cp->m_pRPTTable[table_index].m_PreviousAddress;
@@ -617,8 +596,13 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
       default:{
         break;
       }
-      cp->m_pRPTTable[table_index].m_PreviousAddress = addr;
     }
+    if(cp->m_pRPTTable[table_index].m_eEntryState != eState_No_Predict){
+      if(cache_probe(cp,target_address)==0){
+          cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
+      }
+    }
+    cp->m_pRPTTable[table_index].m_PreviousAddress = addr;
   }
 }
 
