@@ -507,7 +507,13 @@ cache_reg_stats(struct cache_t *cp,	/* cache instance */
 
 /* Next Line Prefetcher */
 void next_line_prefetcher(struct cache_t *cp, md_addr_t addr) {
-	; 
+/* ECE552 Assignment 4 - BEGIN CODE*/
+  md_addr_t p_addr = addr + cp->bsize;
+  if (cache_probe(cp,p_addr) == 0)
+  {
+      cache_access (cp,Read,p_addr,NULL,cp->bsize,0,NULL,NULL,1);
+  }
+/* ECE552 Assignment 4 - END CODE*/
 }
 
 /* Open Ended Prefetcher */
