@@ -234,7 +234,9 @@ struct cache_t
 
   /* data blocks */
   byte_t *data;			/* pointer to data blocks allocation */
+  /* ECE552 Assignment 4 - BEGIN CODE*/
   RPTEntry* m_pRPTTable;
+  /* ECE552 Assignment 4 - END CODE*/
   /* NOTE: this is a variable-size tail array, this must be the LAST field
      defined in this structure! */
   struct cache_set_t sets[1];	/* each entry is a set */
