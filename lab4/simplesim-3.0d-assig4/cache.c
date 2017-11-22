@@ -424,6 +424,19 @@ cache_create(char *name,		/* name of the cache */
       cp->m_pRPTTable[i].m_eEntryState = eState_Not_Used;
     }
   }
+  if(cp->prefetch_type==2){
+    // enable stride prefetcher
+    for(int i = 0; i < OPT_SIZE;i++)
+    {
+      cp->m_OPTable[i].m_PCAddress = -1;
+      cp->m_OPTable[i].m_AddressLast = -1;
+      for (int j = 0; j < OPT_PRE_SIZE; j++) {
+        cp->m_OPTable[i].m_Count[j] = -1;
+        cp->m_OPTable[i].m_PredictAddress[j] = -1;
+      }
+    }
+  }
+  cp->m_ismiss = 0;
   /* ECE552 Assignment 4 - END CODE*/
   return cp;
 }
@@ -600,7 +613,61 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
 }
 /* Open Ended Prefetcher */
 void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
-	stride_prefetcher(cp,addr);
+  
+  md_addr_t current_pc = get_PC();
+  int table_index = (current_pc >> 3) % OPT_SIZE;
+  int i;
+  if (cp->m_ismiss == 1) {
+    if(cp->m_OPTable[table_index].m_PCAddress!=current_pc){
+        // New entry, re initialize entry
+        cp->m_OPTable[table_index].m_PCAddress = current_pc;
+        for (i = 1; i < OPT_PRE_SIZE; i++) {
+            cp->m_OPTable[table_index].m_Count[i] = -1;
+            cp->m_OPTable[table_index].m_PredictAddress[i] = -1;
+        }
+      } else {
+        // Updating the predictor table 
+        int addr_exist = 0;
+        for (i = 0; i < OPT_PRE_SIZE; i++) {
+          if (cp->m_OPTable[table_index].m_PredictAddress[i] ==cp->m_OPTable[table_index].m_AddressLast){
+            addr_exist = 1;
+            cp->m_OPTable[table_index].m_Count[i] ++;
+            break;
+          }
+        }
+        //the fetched address is not in predictor table 
+        int free_space = 0;
+        if (addr_exist == 0) {
+          for (i = 0; i < OPT_PRE_SIZE; i++) {
+            if (cp->m_OPTable[table_index].m_PredictAddress[i] ==-1){
+              free_space = 1;
+              cp->m_OPTable[table_index].m_PredictAddress[i] = cp->m_OPTable[table_index].m_AddressLast;
+              cp->m_OPTable[table_index].m_Count[i] = 1;
+              break;
+            }
+          }
+        }
+        //no free slot, have to kick out old one
+        // if (free_space == 0) {
+        //   int lu_index = 0;
+        //   for (i = 1; i < OPT_PRE_SIZE; i++) {
+        //     if (cp->m_OPTable[table_index].m_Count[i] < cp->m_OPTable[table_index].m_Count[lu_index]){
+        //       lu_index = i;        
+        //     }
+        //   }
+        //   cp->m_OPTable[table_index].m_PredictAddress[lu_index] = cp->m_OPTable[table_index].m_AddressLast;
+        //   cp->m_OPTable[table_index].m_Count[lu_index] = 1;
+        // }
+    }
+  }
+  md_addr_t target_addr;
+        for (i = 0; i < OPT_PRE_SIZE; i++) {
+          target_addr = cp->m_OPTable[table_index].m_PredictAddress[i];
+          if(cache_probe(cp,target_addr)==0 && cp->m_OPTable[table_index].m_Count[i]>2){
+            cache_access(cp,Read,CACHE_BADDR(cp,target_addr),NULL,cp->bsize,0,NULL,NULL,1);
+          }
+  }
+  cp->m_OPTable[table_index].m_AddressLast = addr;
 }
 
 /* Stride Prefetcher */
@@ -678,6 +745,10 @@ cache_access(struct cache_t *cp,	/* cache to access */
   if (repl_addr)
     *repl_addr = 0;
 
+  if (cp->prefetch_type == 2) {
+       cp->m_ismiss = 0;
+  }
+      
   /* check alignments */
   if ((nbytes & (nbytes-1)) != 0 || (addr & (nbytes-1)) != 0)
     fatal("cache: access error: bad size or alignment, addr 0x%08x", addr);
@@ -736,6 +807,9 @@ cache_access(struct cache_t *cp,	/* cache to access */
   }
   else {
      cp->prefetch_misses++;
+  }
+  if (cp->prefetch_type == 2) {
+    cp->m_ismiss = 1;
   }
 
 
