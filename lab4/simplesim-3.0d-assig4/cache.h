@@ -125,6 +125,16 @@ typedef struct _RPTEntry{
   int m_iStride;
   eRPTState m_eEntryState;
 } RPTEntry;
+#define OPEntry_SIZE 1024
+#define OPLink_SIZE 4
+typedef struct _OPEntry{
+  md_addr_t m_PCAddress;
+  md_addr_t m_LinkedAddress[OPLink_SIZE];
+  int        m_LinkedCount[OPLink_SIZE];
+  md_addr_t m_PreviousAddress;
+  int m_iStride;
+  eRPTState m_eEntryState;
+} OPEntry;
 /* ECE552 Assignment 4 - END CODE*/
 /* cache block (or line) definition */
 struct cache_blk_t
@@ -236,6 +246,7 @@ struct cache_t
   byte_t *data;			/* pointer to data blocks allocation */
   /* ECE552 Assignment 4 - BEGIN CODE*/
   RPTEntry* m_pRPTTable;
+  OPEntry   m_aOPTable[OPEntry_SIZE];
   /* ECE552 Assignment 4 - END CODE*/
   /* NOTE: this is a variable-size tail array, this must be the LAST field
      defined in this structure! */

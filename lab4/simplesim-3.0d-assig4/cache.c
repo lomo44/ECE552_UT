@@ -424,6 +424,19 @@ cache_create(char *name,		/* name of the cache */
       cp->m_pRPTTable[i].m_eEntryState = eState_Not_Used;
     }
   }
+
+    for(int i = 0; i < OPEntry_SIZE;i++)
+    {
+      cp->m_aOPTable[i].m_PCAddress = 0;
+      cp->m_aOPTable[i].m_PreviousAddress = 0;
+      cp->m_aOPTable[i].m_iStride = 0;
+      cp->m_aOPTable[i].m_eEntryState = eState_Not_Used;
+      for (int j =0; j < OPLink_SIZE; j++){
+        cp->m_aOPTable[i].m_LinkedAddress[j]=0;
+        cp->m_aOPTable[i].m_LinkedCount[j]=0;
+      }
+    }
+
   /* ECE552 Assignment 4 - END CODE*/
   return cp;
 }
@@ -543,7 +556,6 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
     cp->m_pRPTTable[table_index].m_eEntryState = eState_Init;
   }
   else{
-
     md_addr_t predicted_address = cp->m_pRPTTable[table_index].m_PreviousAddress+cp->m_pRPTTable[table_index].m_iStride;
     md_addr_t target_address = CACHE_BADDR(cp,addr+cp->m_pRPTTable[table_index].m_iStride);
     switch(cp->m_pRPTTable[table_index].m_eEntryState){
@@ -598,9 +610,108 @@ void stride_prefetcher(struct cache_t *cp, md_addr_t addr) {
     cp->m_pRPTTable[table_index].m_PreviousAddress = addr;
   }
 }
-/* Open Ended Prefetcher */
+int cout=0;
 void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
-	stride_prefetcher(cp,addr);
+  md_addr_t current_pc = get_PC();
+  int table_index = (current_pc >> 3) % OPEntry_SIZE;
+  if(cp->m_aOPTable[table_index].m_PCAddress!=current_pc){
+    // New entry, re initialize entry
+    cp->m_aOPTable[table_index].m_PCAddress = current_pc;
+    cp->m_aOPTable[table_index].m_PreviousAddress = addr;
+    cp->m_aOPTable[table_index].m_iStride = 0;
+    cp->m_aOPTable[table_index].m_eEntryState = eState_Init;
+    for (int j =0; j < OPLink_SIZE; j++){
+        cp->m_aOPTable[table_index].m_LinkedAddress[j]=0;
+        cp->m_aOPTable[table_index].m_LinkedCount[j]=0;
+    }
+  }
+  else{
+    int new_stride =addr- cp->m_aOPTable[table_index].m_PreviousAddress;
+    int same_stride = 0;
+    md_addr_t target_address_old = CACHE_BADDR(cp,addr+cp->m_aOPTable[table_index].m_iStride);
+    if (cp->m_aOPTable[table_index].m_iStride == new_stride)
+      same_stride = 1;
+    switch(cp->m_aOPTable[table_index].m_eEntryState){
+      case eState_Init:{
+        // Check if the access address if
+        if(same_stride){
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Steady;
+        }
+        else{
+          cp->m_aOPTable[table_index].m_iStride = addr - cp->m_aOPTable[table_index].m_PreviousAddress;
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Transient;
+        }
+        break;
+      }
+      case eState_Transient:{
+        if(same_stride){
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Steady;
+        }
+        else{
+          cp->m_aOPTable[table_index].m_iStride = addr - cp->m_aOPTable[table_index].m_PreviousAddress;
+          cp->m_aOPTable[table_index].m_eEntryState = eState_No_Predict;
+        }
+        break;
+      }
+      case eState_Steady:{
+        if(same_stride){
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Steady;
+        }
+        else{
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Init;
+        }
+        break;
+      }
+      case eState_No_Predict:{
+        if(same_stride){
+          cp->m_aOPTable[table_index].m_eEntryState = eState_Transient;
+        }
+        else{
+          if (new_stride >= cp->bsize) {
+            int find_same_addr = 0;
+            int j;
+            for (j =0; j < OPLink_SIZE; j++){
+              if ( cp->m_aOPTable[table_index].m_LinkedAddress[j]==addr) {
+                cp->m_aOPTable[table_index].m_LinkedCount[j] ++;
+                find_same_addr = 1;
+                break;
+              }
+            }
+            if (find_same_addr == 0) {
+              for (j =0; j < OPLink_SIZE; j++){
+                if ( cp->m_aOPTable[table_index].m_LinkedCount[j]==0){     
+                  cp->m_aOPTable[table_index].m_LinkedAddress[j]=addr;
+                  cp->m_aOPTable[table_index].m_LinkedCount[j] =1;
+                  break;
+                }
+              }
+            }
+          }
+          cp->m_aOPTable[table_index].m_iStride = addr - cp->m_aOPTable[table_index].m_PreviousAddress;
+        }
+        break;
+      }
+      default:{
+        break;
+      }
+    }
+    if(cp->m_aOPTable[table_index].m_eEntryState != eState_No_Predict){
+      if(cache_probe(cp,target_address_old)==0){
+          cache_access(cp,Read,target_address_old,NULL,cp->bsize,0,NULL,NULL,1);
+      }
+    } else {
+      md_addr_t target_address; 
+      for (int j =0; j < OPLink_SIZE; j++){
+        if (cp->m_aOPTable[table_index].m_LinkedCount[j] >=1000){ 
+          target_address = CACHE_BADDR(cp,cp->m_aOPTable[table_index].m_LinkedAddress[j]); 
+          if(cache_probe(cp,target_address)==0){        
+            cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
+          }
+        }
+      }
+    }
+    cp->m_aOPTable[table_index].m_PreviousAddress = addr;
+  }
 }
 
 /* Stride Prefetcher */
@@ -613,7 +724,8 @@ void generate_prefetch(struct cache_t *cp, md_addr_t addr) {
 
 	switch(cp->prefetch_type) {
 		case 0:
-		   // prefetching is not enabled;
+    
+    // prefetching is not enabled;
 		   // do nothing
 		   break;
 		case 1:
