@@ -668,20 +668,21 @@ void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
         }
         else{
           if (new_stride >= cp->bsize) {
+            int miss_inddex = (cp->m_aOPTable[table_index].m_PreviousAddress>>3)%OPEntry_SIZE;
             int find_same_addr = 0;
             int j;
             for (j =0; j < OPLink_SIZE; j++){
-              if ( cp->m_aOPTable[table_index].m_LinkedAddress[j]==addr) {
-                cp->m_aOPTable[table_index].m_LinkedCount[j] ++;
+              if ( cp->m_aOPTable[miss_inddex].m_LinkedAddress[j]==addr) {
+                cp->m_aOPTable[miss_inddex].m_LinkedCount[j] ++;
                 find_same_addr = 1;
                 break;
               }
             }
             if (find_same_addr == 0) {
               for (j =0; j < OPLink_SIZE; j++){
-                if ( cp->m_aOPTable[table_index].m_LinkedCount[j]==0){     
-                  cp->m_aOPTable[table_index].m_LinkedAddress[j]=addr;
-                  cp->m_aOPTable[table_index].m_LinkedCount[j] =1;
+                if ( cp->m_aOPTable[miss_inddex].m_LinkedCount[j]==0){     
+                  cp->m_aOPTable[miss_inddex].m_LinkedAddress[j]=addr;
+                  cp->m_aOPTable[miss_inddex].m_LinkedCount[j] =1;
                   break;
                 }
               }
@@ -701,8 +702,9 @@ void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
       }
     } else {
       md_addr_t target_address; 
+      int miss_inddex = (addr >>3)%OPEntry_SIZE;
       for (int j =0; j < OPLink_SIZE; j++){
-        if (cp->m_aOPTable[table_index].m_LinkedCount[j] >=1000){ 
+        if (cp->m_aOPTable[miss_inddex].m_LinkedCount[j] >=1000){ 
           target_address = CACHE_BADDR(cp,cp->m_aOPTable[table_index].m_LinkedAddress[j]); 
           if(cache_probe(cp,target_address)==0){        
             cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
