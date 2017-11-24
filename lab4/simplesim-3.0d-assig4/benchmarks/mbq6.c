@@ -11,7 +11,7 @@ int main(){
     int sum = 0;
     while(counter < ARRAY_SIZE){
         //array[counter%3] +=2;// i advance in a paticular stride pattern {16,64,8}
-        sum += array[counter%3];
+        sum += array[strides[counter%3]];
         counter++;
     }
     
