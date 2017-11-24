@@ -1,10 +1,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#define ARRAY_SIZE 1000
+#define ARRAY_SIZE 1000000
 
 int main(){
-    int strides[3] = {16,64,8};
+    int strides[3] = {16,128,4};
     int i = 0;
     int counter = 0;
     int* array = calloc(ARRAY_SIZE,sizeof(int));
