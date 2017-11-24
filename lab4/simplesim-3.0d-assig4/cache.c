@@ -431,10 +431,10 @@ cache_create(char *name,		/* name of the cache */
       cp->m_aOPTable[i].m_PreviousAddress = 0;
       cp->m_aOPTable[i].m_iStride = 0;
       cp->m_aOPTable[i].m_eEntryState = eState_Not_Used;
-      for (int j =0; j < OPLink_SIZE; j++){
-        cp->m_aOPTable[i].m_LinkedAddress[j]=0;
-        cp->m_aOPTable[i].m_LinkedCount[j]=0;
-      }
+      // for (int j =0; j < OPLink_SIZE; j++){
+      //   cp->m_aOPTable[i].m_LinkedAddress[j]=0;
+      //   cp->m_aOPTable[i].m_LinkedCount[j]=0;
+      // }
     }
 
   /* ECE552 Assignment 4 - END CODE*/
@@ -620,9 +620,11 @@ void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
     cp->m_aOPTable[table_index].m_PreviousAddress = addr;
     cp->m_aOPTable[table_index].m_iStride = 0;
     cp->m_aOPTable[table_index].m_eEntryState = eState_Init;
-    for (int j =0; j < OPLink_SIZE; j++){
-        cp->m_aOPTable[table_index].m_LinkedAddress[j]=0;
-        cp->m_aOPTable[table_index].m_LinkedCount[j]=0;
+    for (int i =0; i < OPLink_SIZE; i++){
+      for (int j =0; j < OPLink_SIZE; j++){
+        cp->m_aOPTable[table_index].m_LinkedAddress[i][j]=0;
+        cp->m_aOPTable[table_index].m_LinkedCount[i][j]=0;
+      }
     }
   }
   else{
@@ -668,21 +670,21 @@ void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
         }
         else{
           if (new_stride >= cp->bsize) {
-            int miss_inddex = (cp->m_aOPTable[table_index].m_PreviousAddress>>3)%OPEntry_SIZE;
+            int miss_inddex = (cp->m_aOPTable[table_index].m_PreviousAddress>>3)%OPLink_SIZE;
             int find_same_addr = 0;
             int j;
             for (j =0; j < OPLink_SIZE; j++){
-              if ( cp->m_aOPTable[miss_inddex].m_LinkedAddress[j]==addr) {
-                cp->m_aOPTable[miss_inddex].m_LinkedCount[j] ++;
+              if ( cp->m_aOPTable[table_index].m_LinkedAddress[miss_inddex][j]==addr) {
+                cp->m_aOPTable[table_index].m_LinkedCount[miss_inddex][j] ++;
                 find_same_addr = 1;
                 break;
               }
             }
             if (find_same_addr == 0) {
               for (j =0; j < OPLink_SIZE; j++){
-                if ( cp->m_aOPTable[miss_inddex].m_LinkedCount[j]==0){     
-                  cp->m_aOPTable[miss_inddex].m_LinkedAddress[j]=addr;
-                  cp->m_aOPTable[miss_inddex].m_LinkedCount[j] =1;
+                if ( cp->m_aOPTable[table_index].m_LinkedCount[miss_inddex][j]==0){     
+                  cp->m_aOPTable[table_index].m_LinkedAddress[miss_inddex][j]=addr;
+                  cp->m_aOPTable[table_index].m_LinkedCount[miss_inddex][j] =1;
                   break;
                 }
               }
@@ -702,10 +704,11 @@ void open_ended_prefetcher(struct cache_t *cp, md_addr_t addr) {
       }
     } else {
       md_addr_t target_address; 
-      int miss_inddex = (addr >>3)%OPEntry_SIZE;
+      int miss_inddex = (addr >>3)%OPLink_SIZE;
       for (int j =0; j < OPLink_SIZE; j++){
-        if (cp->m_aOPTable[miss_inddex].m_LinkedCount[j] >=1000){ 
-          target_address = CACHE_BADDR(cp,cp->m_aOPTable[table_index].m_LinkedAddress[j]); 
+        if (cp->m_aOPTable[table_index].m_LinkedCount[miss_inddex][j] >=500){ 
+          //printf ("%d\n",cp->m_aOPTable[table_index].m_LinkedCount[miss_inddex][j]);
+          target_address = CACHE_BADDR(cp,cp->m_aOPTable[table_index].m_LinkedAddress[miss_inddex][j]); 
           if(cache_probe(cp,target_address)==0){        
             cache_access(cp,Read,target_address,NULL,cp->bsize,0,NULL,NULL,1);
           }

@@ -1,9 +1,8 @@
 #include <stdio.h>
 
-// Define variables based on the configuration of the l1 data cache config
 // <name>:<nsets>:<bsize>:<assoc>:<repl>:<pref>
 #define BSIZE 64
-
+//when the SDTEP is BSIZE, next line prefetch should perform well and have very low missrate
 #define STEP (BSIZE)
 #define ARRAY_SIZE 1000000
 

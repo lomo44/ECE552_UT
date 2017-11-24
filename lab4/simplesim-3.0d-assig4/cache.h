@@ -129,8 +129,8 @@ typedef struct _RPTEntry{
 #define OPLink_SIZE 4
 typedef struct _OPEntry{
   md_addr_t m_PCAddress;
-  md_addr_t m_LinkedAddress[OPLink_SIZE];
-  int        m_LinkedCount[OPLink_SIZE];
+  md_addr_t m_LinkedAddress[OPLink_SIZE][OPLink_SIZE];
+  int        m_LinkedCount[OPLink_SIZE][OPLink_SIZE];
   md_addr_t m_PreviousAddress;
   int m_iStride;
   eRPTState m_eEntryState;
